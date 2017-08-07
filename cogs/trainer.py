@@ -36,21 +36,41 @@ class Profiles:
 
 	@commands.command(pass_context=True)
 	async def newprofile(self, ctx, mention, name, team, level, xp):
+		tteam = team.title()
+		if not (tteam in ['Valor','Mystic','Instinct']):
+			await self.bot.send_message(ctx.message.channel, "This isn't a valid team. Please ensure that you have used the command correctly.")
+			await self.bot.send_message(ctx.message.channel, "Usage: `.newprofile @mention pogoname team levelasdigits xpasdigits")
+			return
 		lvl = c.execute('SELECT level, min_xp FROM levels WHERE level=?', (level,)).fetchone()
-		teami = c.execute('SELECT id FROM teams WHERE name=?', (team,)).fetchone()
+		teami = c.execute('SELECT id FROM teams WHERE name=?', (tteam,)).fetchone()
 		c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team) VALUES ('{pgnm}','{did}','{txp}','{t}','{tm}')".\
 				  format(pgnm=name, did=ctx.message.mentions[0].id, txp=lvl[1]+int(xp), t=int(time.time()), tm=teami[0]))
 		trnr.commit()
 		await ctx.invoke(self.whois, name=name)
 		
-#	@commands.command(pass_context=True)
-#	async def approve(self, ctx, mention, name, team, level, xp):
-#		mbr = ctx.message.mentions[0]
-#		await self.bot.change_nickname(mbr, name)
-#		trnrrole = discord.utils.get(message.server.roles, name='Trainer')
-#		tmrole = discord.utils.get(message.server.roles, name=team)
-#		await self.bot.add_roles(mbr, trnrrole, tmrole)
-#		await ctx.invoke(self.newprofile, mention=mention, name=name, team=team, level=level, xp=xp)
+	@commands.command(pass_context=True)
+	async def approve(self, ctx, mention, name, team, level, xp):
+		await self.bot.send_typing(ctx.message.channel)
+		tteam = team.title()
+		if not (tteam in ['Valor','Mystic','Instinct']):
+			await self.bot.send_message(ctx.message.channel, "This isn't a valid team. Please ensure that you have used the command correctly.")
+			await self.bot.send_message(ctx.message.channel, "Usage: `.approve @mention pogoname team levelasdigits xpasdigits")
+			return
+		mbr = ctx.message.mentions[0] # mbr = the mentioned user
+		try:
+			await self.bot.change_nickname(mbr, name) #change the nickname of the mentioned user
+		except discord.errors.Forbidden:
+			await self.bot.send_message(ctx.message.channel, "Fuck you, cunt. I can't change nicknames. I'm not the fucking Name Rater")
+		else:
+			trnrrole = discord.utils.get(ctx.message.server.roles, name='Trainer') #search for a role on the server named Trainer
+			tmrole = discord.utils.get(ctx.message.server.roles, name=tteam) #search for a role on the server with a name that matches the team name
+			try:
+				await self.bot.add_roles(mbr, trnrrole, tmrole) #apply those two roles
+			except discord.errors.Forbidden:
+				await self.bot.send_message(ctx.message.channel, "Fuck you, cunt. I can't set roles. Go ask a fucking cunt at subway, they're great with roles.")
+			else:
+				await self.bot.send_message(ctx.message.channel, "Fuck me, I did something right.")
+				await ctx.invoke(self.newprofile, mention=mention, name=name, team=team, level=level, xp=xp) #runs newprofile command
 		
 def setup(bot):
     bot.add_cog(Profiles(bot))
