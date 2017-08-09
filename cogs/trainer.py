@@ -20,7 +20,7 @@ class Profiles:
 		
 	@commands.command(pass_context=True)
 	async def whois(self, ctx, name): #user lookup
-		self.bot.send_typing(ctx.message.channel)
+		await self.bot.send_typing(ctx.message.channel)
 		trn = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name FROM trainers WHERE pogo_name=?', (name,)).fetchone()
 		if trn:
 			trnrlvl = c.execute('SELECT level, min_xp FROM levels WHERE min_xp<?', (trn[1],)).fetchall()[-1]
@@ -43,7 +43,7 @@ class Profiles:
 
 	@commands.command(pass_context=True)
 	async def updatexp(self, ctx, xp): #updatexp - a command used for updating the total experience of a user
-		self.bot.send_typing(ctx.message.channel)
+		await self.bot.send_typing(ctx.message.channel)
 		oldxp = c.execute('SELECT pogo_name, total_xp, last_updated FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if oldxp:
 			if int(oldxp[1]) > int(xp):
@@ -56,13 +56,25 @@ class Profiles:
 		else:
 			await self.bot.send_message(ctx.message.channel, "Please ask a member of staff to add your profile to the system.")
 			return
+		
+	@commands.command(pass_context=True)
+	async def setname(self, ctx, name: str): #setname - a command used for to set your name on your profile
+		await self.bot.send_typing(ctx.message.channel)
+		profile = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
+		if profile:
+			c.execute("UPDATE trainers SET real_name=? WHERE discord_id=?", (name, ctx.message.author.id))
+			trnr.commit()
+			await ctx.invoke(self.whois, name=profile[0])
+		else:
+			await self.bot.send_message(ctx.message.channel, "Please ask a member of staff to add your profile to the system.")
+			return
 			
 #Mod-commands
 			
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def newprofile(self, ctx, mention, name, team, level, xp): #adding a user to the database
-		self.bot.send_typing(ctx.message.channel)
+		await self.bot.send_typing(ctx.message.channel)
 		tteam = team.title()
 		if not (tteam in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.send_message(ctx.message.channel, "This isn't a valid team. Please ensure that you have used the command correctly.")
@@ -80,7 +92,7 @@ class Profiles:
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def approve(self, ctx, mention, name, team, level, xp): #applies the correct roles to a user and adds the user to the database
-		self.bot.send_typing(ctx.message.channel)
+		await self.bot.send_typing(ctx.message.channel)
 		tteam = team.title()
 		if not (tteam in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.send_message(ctx.message.channel, "This isn't a valid team. Please ensure that you have used the command correctly.")
@@ -96,8 +108,8 @@ class Profiles:
 			try:
 				await self.bot.add_roles(mbr, trnrrole)
 				if (tteam in ['Valor','Mystic','Instinct']):
-					self.bot.send_typing(ctx.message.channel)
-					await asyncio.sleep(2)
+					await self.bot.send_typing(ctx.message.channel)
+					time.sleep(5)
 					await self.bot.add_roles(mbr, tmrole)
 			except discord.errors.Forbidden:
 				await self.bot.send_message(ctx.message.channel, "Error: I don't have permission to set roles. Aborted!")
