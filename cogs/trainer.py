@@ -15,9 +15,11 @@ class Profiles:
 	
 	def __init__(self, bot):
 		self.bot = bot
-	
+		
+#Public Commands
+		
 	@commands.command(pass_context=True)
-	async def whois(self, ctx, name):
+	async def whois(self, ctx, name): #user lookup
 		self.bot.send_typing(ctx.message.channel)
 		trn = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name FROM trainers WHERE pogo_name=?', (name,)).fetchone()
 		if trn:
@@ -40,8 +42,26 @@ class Profiles:
 			await self.bot.send_message(ctx.message.channel, "Unfortunatly, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
 
 	@commands.command(pass_context=True)
+	async def updatexp(self, ctx, xp): #updatexp - a command used for updating the total experience of a user
+		self.bot.send_typing(ctx.message.channel)
+		oldxp = c.execute('SELECT pogo_name, total_xp, last_updated FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
+		if oldxp:
+			if int(oldxp[1]) > int(xp):
+				await self.bot.send_message(ctx.message.channel, "Error: Specified XP higher than currently set XP. Please use the total xp at the bottom of your profile.")
+				return
+			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (oldxp[0], oldxp[1], oldxp[2]))
+			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE discord_id=?", (int(xp), int(time.time()), ctx.message.author.id))
+			trnr.commit()
+			await ctx.invoke(self.whois, name=oldxp[0])
+		else:
+			await self.bot.send_message(ctx.message.channel, "Please ask a member of staff to add your profile to the system.")
+			return
+			
+#Mod-commands
+			
+	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def newprofile(self, ctx, mention, name, team, level, xp):
+	async def newprofile(self, ctx, mention, name, team, level, xp): #adding a user to the database
 		self.bot.send_typing(ctx.message.channel)
 		tteam = team.title()
 		if not (tteam in ['Valor','Mystic','Instinct', 'Teamless']):
@@ -59,7 +79,7 @@ class Profiles:
 		
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def approve(self, ctx, mention, name, team, level, xp):
+	async def approve(self, ctx, mention, name, team, level, xp): #applies the correct roles to a user and adds the user to the database
 		self.bot.send_typing(ctx.message.channel)
 		tteam = team.title()
 		if not (tteam in ['Valor','Mystic','Instinct', 'Teamless']):
@@ -76,28 +96,14 @@ class Profiles:
 			try:
 				await self.bot.add_roles(mbr, trnrrole)
 				if (tteam in ['Valor','Mystic','Instinct']):
+					self.bot.send_typing(ctx.message.channel)
+					await asyncio.sleep(2)
 					await self.bot.add_roles(mbr, tmrole)
 			except discord.errors.Forbidden:
 				await self.bot.send_message(ctx.message.channel, "Error: I don't have permission to set roles. Aborted!")
 			else:
 				await self.bot.send_message(ctx.message.channel, "{} has been approved.".format(name))
 				await ctx.invoke(self.newprofile, mention=mention, name=name, team=team, level=level, xp=xp)
-	
-	@commands.command(pass_context=True)
-	async def updatexp(self, ctx, xp):
-		self.bot.send_typing(ctx.message.channel)
-		oldxp = c.execute('SELECT pogo_name, total_xp, last_updated FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
-		if oldxp:
-			if int(oldxp[1]) > int(xp):
-				await self.bot.send_message(ctx.message.channel, "Error: Specified XP higher than currently set XP. Please use the total xp at the bottom of your profile.")
-				return
-			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (oldxp[0], oldxp[1], oldxp[2]))
-			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE discord_id=?", (int(xp), int(time.time()), ctx.message.author.id))
-			trnr.commit()
-			await ctx.invoke(self.whois, name=oldxp[0])
-		else:
-			await self.bot.send_message(ctx.message.channel, "Please ask a member of staff to add your profile to the system.")
-			return
 		
 def setup(bot):
     bot.add_cog(Profiles(bot))
