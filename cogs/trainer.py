@@ -21,25 +21,25 @@ class Profiles:
 	@commands.command(pass_context=True)
 	async def whois(self, ctx, name): #user lookup
 		await self.bot.send_typing(ctx.message.channel)
-		trn = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name FROM trainers WHERE pogo_name=?', (name,)).fetchone()
-		if trn:
+		trn = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name, spoofer, no_stats FROM trainers WHERE pogo_name=?', (name,)).fetchone()
+		if trn[7]:
+			await self.bot.send_message(ctx.message.channel, "{} has chosen to opt out of statistics and the trainer profile system.".format(trn[0]))
+		elif trn:
 			trnrlvl = c.execute('SELECT level, min_xp FROM levels WHERE min_xp<?', (trn[1],)).fetchall()[-1]
 			team = c.execute('SELECT name, leader, role, colour, logo FROM teams WHERE id=?', (trn[3],)).fetchone()
 			embed=discord.Embed(title=trn[0], timestamp=(datetime.datetime.fromtimestamp(trn[2], tz)), color=team[3])
-	#		user = discord.utils.get(server.members, id=trn[4]) # <<<<< Lines causing issue
-			if trn[5]:
-				embed.add_field(name='Name', value=trn[5])
-			else:
-				embed.add_field(name='Name', value='Undisclosed')
+			embed.add_field(name='Name', value=trn[5] or 'Undisclosed')
 			embed.add_field(name='Team', value=team[0])
 			embed.add_field(name='Level', value=trnrlvl[0])
 			embed.add_field(name='XP', value=trn[1]-trnrlvl[1])
 			embed.set_footer(text="Total XP: "+str(trn[1]))
-	#		embed.set_thumbnail(url=user.avatar_url) # <<<<< Lines causing issue
 			embed.set_thumbnail(url=team[4])
-			await self.bot.say(embed=embed)
+			if trn[6] == 1:
+				embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
+				embed.add_field(name='Comments', value='{} is a known spoofer'.format(trn[0]))
+			await self.bot.say(embed=embed)		
 		else:
-			await self.bot.send_message(ctx.message.channel, "Unfortunatly, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
+			await self.bot.send_message(ctx.message.channel, "Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
 
 	@commands.command(pass_context=True)
 	async def updatexp(self, ctx, xp): #updatexp - a command used for updating the total experience of a user
@@ -47,7 +47,7 @@ class Profiles:
 		oldxp = c.execute('SELECT pogo_name, total_xp, last_updated FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if oldxp:
 			if int(oldxp[1]) > int(xp):
-				await self.bot.send_message(ctx.message.channel, "Error: Specified XP higher than currently set XP. Please use the total xp at the bottom of your profile.")
+				await self.bot.send_message(ctx.message.channel, "Error: Specified XP higher than currently set XP. Please use the Total XP at the bottom of your profile.")
 				return
 			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (oldxp[0], oldxp[1], oldxp[2]))
 			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE discord_id=?", (int(xp), int(time.time()), ctx.message.author.id))
@@ -77,7 +77,7 @@ class Profiles:
 		await self.bot.send_typing(ctx.message.channel)
 		tteam = team.title()
 		if not (tteam in ['Valor','Mystic','Instinct', 'Teamless']):
-			await self.bot.send_message(ctx.message.channel, "This isn't a valid team. Please ensure that you have used the command correctly.")
+			await self.bot.send_message(ctx.message.channel, "{} isn't a valid team. Please ensure that you have used the command correctly.".format(tteam))
 			return
 		lvl = c.execute('SELECT level, min_xp FROM levels WHERE level=?', (level,)).fetchone()
 		teami = c.execute('SELECT id FROM teams WHERE name=?', (tteam,)).fetchone()
@@ -95,7 +95,7 @@ class Profiles:
 		await self.bot.send_typing(ctx.message.channel)
 		tteam = team.title()
 		if not (tteam in ['Valor','Mystic','Instinct', 'Teamless']):
-			await self.bot.send_message(ctx.message.channel, "This isn't a valid team. Please ensure that you have used the command correctly.")
+			await self.bot.send_message(ctx.message.channel, "{} isn't a valid team. Please ensure that you have used the command correctly.".format(tteam))
 			return
 		mbr = ctx.message.mentions[0]
 		try:
@@ -109,12 +109,12 @@ class Profiles:
 				await self.bot.add_roles(mbr, trnrrole)
 				if (tteam in ['Valor','Mystic','Instinct']):
 					await self.bot.send_typing(ctx.message.channel)
-					time.sleep(5)
+					time.sleep(2.5)
 					await self.bot.add_roles(mbr, tmrole)
 			except discord.errors.Forbidden:
 				await self.bot.send_message(ctx.message.channel, "Error: I don't have permission to set roles. Aborted!")
 			else:
-				await self.bot.send_message(ctx.message.channel, "{} has been approved.".format(name))
+				await self.bot.send_message(ctx.message.channel, "{} has been approved, super. They're probably super cool, be nice to them.".format(name))
 				await ctx.invoke(self.newprofile, mention=mention, name=name, team=team, level=level, xp=xp)
 		
 def setup(bot):
