@@ -106,7 +106,7 @@ class Profiles:
 			return
 		
 	@commands.command(pass_context=True)
-	async def setgoal(self, ctx, goal): #setgoal - a command used for to set your daily goal on your profile
+	async def setgoal(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
 		await self.bot.send_typing(ctx.message.channel)
 		profile = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if profile:
