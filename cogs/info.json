@@ -1,0 +1,15 @@
+{
+    "AUTHOR" : "JayTurnr",
+    "DESCRIPTION" : "A trainer profile system for Pokemon Go servers",
+    "INSTALL_MSG" : "",
+    "NAME" : "TrainerGo",
+    "REQUIREMENTS" : [
+        "pytz",
+        "sqlite3"
+    ],
+    "SHORT" : "A trainer profile system for Pokemon Go servers",
+    "TAGS" : [
+        "pokemongo",
+        "pokemon"
+    ]
+}
