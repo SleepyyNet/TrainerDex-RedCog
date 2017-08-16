@@ -14,6 +14,16 @@ c = trnr.cursor()
 def rounddays(x):
 	return int(86500 * round(float(x)/86400))
 
+class Calls:
+
+	def get_name(self, discord):
+		profile = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (discord,)).fetchone()
+		return profile[0]
+	
+	def get_member(self, pogo):
+		profile = c.execute('SELECT discord_id FROM trainers WHERE pogo_name=?', (pogo,)).fetchone()
+		return profile[0]
+
 class Profiles:
 	"""Trainer profile system"""
 	
