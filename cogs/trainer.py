@@ -123,7 +123,8 @@ class Profiles:
 	@checks.mod_or_permissions(assign_roles=True)
 	async def newprofile(self, ctx, mention, name, team, level, xp): #adding a user to the database
 		await self.bot.send_typing(ctx.message.channel)
-		await self.new_profile(ctx.message.mentions[0].id, name, team, level, xp)
+		mbr = ctx.message.mentions[0]
+		await self.add_profile(mbr.id, name, team, level, xp)
 		await self.profile_card(name, ctx.message.channel)
 		
 	@commands.command(pass_context=True)
@@ -152,7 +153,7 @@ class Profiles:
 				await self.bot.say("Error: I don't have permission to set roles. Aborted!")
 			else:
 				await self.bot.say("{} has been approved, super. They're probably super cool, be nice to them.".format(name))
-				await self.add_profile(mbr, name, team, level, xp)
+				await self.add_profile(mbr.id, name, team, level, xp)
 				await self.profile_card(name, ctx.message.channel) 
 		
 def setup(bot):
