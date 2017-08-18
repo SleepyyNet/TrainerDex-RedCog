@@ -3,6 +3,7 @@ from discord.ext import commands
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search, DocType, Date, Integer, Keyword, Text, Float, Boolean
 from elasticsearch_dsl.connections import connections
+import datetime
 
 connections.create_connection(hosts=['localhost'])
 
@@ -41,7 +42,7 @@ class Pokedex:
             await self.bot.say("I couldn't find that pokemon")
             return
         hit = response[0]
-        embed=discord.Embed(title=hit.name, url="http://bulbapedia.bulbagarden.net/wiki/{}".format(hit.name))
+        embed=discord.Embed(title=hit.name, url="http://bulbapedia.bulbagarden.net/wiki/{}".format(hit.name), timestamp=(datetime.datetime(2017,7,6)))
         embed.set_thumbnail(url="http://serebii.net/pokemongo/pokemon/{:03d}.png".format(int(hit.meta.id)))
         embed.add_field(name='Base Attack Stat', value=hit.attack_ratio)
         embed.add_field(name='Base Defence Stat', value=hit.defense_ratio)
