@@ -155,7 +155,10 @@ class Profiles:
 		except discord.errors.Forbidden:
 			await self.bot.say("Error: I don't have permission to change nicknames. Aborted!")
 		else:
-			approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Trainer')
+			if (opt.title() in ['Minor', 'Child']) and discord.utils.get(ctx.message.server.roles, name='Minor'):
+				approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Minor')
+			else:
+				approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Trainer')
 			team_mentionable = discord.utils.get(ctx.message.server.roles, name=team.title())
 			try:
 				await self.bot.add_roles(mbr, approved_mentionable)
