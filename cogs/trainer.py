@@ -65,14 +65,14 @@ class Profiles:
 			embed.set_footer(text="Total XP: "+str(t_xp))
 			await self.bot.say(embed=embed)	
 	
-	async def addProfile(self, discord, name, team, level, xp):
+	async def addProfile(self, discord, name, team, level, xp, cheat=None):
 		if not (team in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(tteam))
 			return
 		l_level, l_min = c.execute('SELECT level, min_xp FROM levels WHERE level=?', (level,)).fetchone()
 		f_id, = c.execute('SELECT id FROM teams WHERE name=?', (team,)).fetchone()
 		try:
-			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team) VALUES (?,?,?,?,?)",(name, discord, l_min+int(xp), int(time.time()), f_id))
+			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team, spoofed, spoofer) VALUES (?,?,?,?,?,?,?)",(name, discord, l_min+int(xp), int(time.time()), f_id, cheat, cheat))
 		except sqlite3.IntegrityError:
 			await self.bot.say("Happy Error: Profile already exists. Just use the `updatexp`command :slightsmile:")
 		else:
@@ -82,12 +82,12 @@ class Profiles:
 #Public Commands
 	
 	@commands.command(pass_context=True)
-	async def whois(self, ctx, name): #user lookup
+	async def whois(self, ctx, name: str): #user lookup
 		await self.bot.send_typing(ctx.message.channel)
 		await self.profileCard(name, ctx.message.channel)
 
 	@commands.command(pass_context=True)
-	async def updatexp(self, ctx, xp): #updatexp - a command used for updating the total experience of a user
+	async def updatexp(self, ctx, xp: int): #updatexp - a command used for updating the total experience of a user
 		await self.bot.send_typing(ctx.message.channel)
 		t_pogo, t_xp, t_time, t_goal = c.execute('SELECT pogo_name, total_xp, last_updated, goal FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if t_xp:
@@ -133,15 +133,18 @@ class Profiles:
 			
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def newprofile(self, ctx, mention, name, team, level, xp): #adding a user to the database
+	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=None): #adding a user to the database
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
-		await self.addProfile(mbr.id, name, team.title(), level, xp)
+		if opt.title() == 'Spoofer':
+			await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1)
+		else:
+			await self.addProfile(mbr.id, name, team.title(), level, xp)
 		await self.profileCard(name, ctx.message.channel)
 		
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def approve(self, ctx, mention, name, team, level, xp): #applies the correct roles to a user and adds the user to the database
+	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=None): #applies the correct roles to a user and adds the user to the database
 		await self.bot.send_typing(ctx.message.channel)
 		if not (team.title() in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(team.title()))
@@ -164,7 +167,10 @@ class Profiles:
 				await self.bot.say("Error: I don't have permission to set roles. Aborted!")
 			else:
 				await self.bot.say("{} has been approved, super. They're probably super cool, be nice to them.".format(name))
-				await self.addProfile(mbr.id, name, team.title(), level, xp)
+				if opt.title() == 'Spoofer':
+					await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1)
+				else:
+					await self.addProfile(mbr.id, name, team.title(), level, xp)
 				await self.profileCard(name, ctx.message.channel) 
 		
 def setup(bot):
