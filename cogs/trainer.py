@@ -12,6 +12,8 @@ trnr = sqlite3.connect('trainers.db')
 c = trnr.cursor()
 
 def rounddays(x):
+NOT_IN_SYSTEM = "Uh-oh! Looks like you're not registered into the system. Please ask an admin to handle this for you!"
+
 	return int(86500 * round(float(x)/86400))
 
 class Calls:
@@ -36,7 +38,7 @@ class Profiles:
 		diff = int(profile[1])-int(history[1])
 		days = int(rounddays(profile[2]-history[2])/86400)
 		goal = profile[3]
-		goal_cent = ((diff/days)/goal)*100
+		goal_cent = round(((diff/days)/goal)*100,2)
 		return goal_cent		
 		
 	async def profile_card(self, name, channel, goal:str=None):
@@ -90,7 +92,7 @@ class Profiles:
 		oldxp = c.execute('SELECT pogo_name, total_xp, last_updated, goal FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if oldxp:
 			if int(oldxp[1]) > int(xp):
-				await self.bot.say("Error: Specified XP higher than currently set XP. Please use the Total XP at the bottom of your profile.")
+				await self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
 				return
 			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (oldxp[0], oldxp[1], oldxp[2]))
 			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE discord_id=?", (int(xp), int(time.time()), ctx.message.author.id))
@@ -100,7 +102,7 @@ class Profiles:
 			else:
 				await self.profile_card(oldxp[0], ctx.message.channel)
 		else:
-			await self.bot.say("Please ask a member of staff to add your profile to the system.")
+			await self.bot.say(NOT_IN_SYSTEM)
 			return
 		
 	@commands.command(pass_context=True)
@@ -112,7 +114,7 @@ class Profiles:
 			trnr.commit()
 			await self.profile_card(profile[0], ctx.message.channel)
 		else:
-			await self.bot.say("Please ask a member of staff to add your profile to the system.")
+			await self.bot.say(NOT_IN_SYSTEM)
 			return
 		
 	@commands.command(pass_context=True)
@@ -124,7 +126,7 @@ class Profiles:
 			trnr.commit()
 			await self.bot.say("Your daily XP goal is set to {}.".format(goal))
 		else:
-			await self.bot.say("Please ask a member of staff to add your profile to the system.")
+			await self.bot.say(NOT_IN_SYSTEM)
 			return
 			
 #Mod-commands
