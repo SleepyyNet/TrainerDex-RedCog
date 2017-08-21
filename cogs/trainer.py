@@ -43,27 +43,28 @@ class Profiles:
 		return goal_cent		
 		
 	async def profileCard(self, name, channel, goal:str=None):
-		t_pogo, t_xp, t_time, t_team, t_discord, t_name, t_cheat, t_opt_out = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name, spoofer, no_stats FROM trainers WHERE pogo_name=?', (name,)).fetchone()
-		if t_pogo==None:
+		try:
+			t_pogo, t_xp, t_time, t_team, t_discord, t_name, t_cheat, t_opt_out = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name, spoofer, no_stats FROM trainers WHERE pogo_name=?', (name,)).fetchone()
+			if t_opt_out:
+				await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
+			else:
+				l_level, l_min = c.execute('SELECT level, min_xp FROM levels WHERE min_xp<?', (t_xp,)).fetchall()[-1]
+				f_name, f_leader, f_mentionable, f_colour, f_logo = c.execute('SELECT name, leader, role, colour, logo FROM teams WHERE id=?', (t_team,)).fetchone()
+				embed=discord.Embed(description="**"+t_pogo+"** | <@"+str(t_discord)+">", timestamp=(datetime.datetime.fromtimestamp(t_time, tz)), color=f_colour)
+				embed.add_field(name='Name', value=t_name or 'Undisclosed')
+				embed.add_field(name='Team', value=f_name)
+				embed.add_field(name='Level', value=l_level)
+				embed.add_field(name='XP', value=t_xp-l_min)
+				embed.set_thumbnail(url=f_logo)
+				if t_cheat == 1:
+					embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
+					embed.add_field(name='Comments', value='{} is a known spoofer'.format(t_pogo))
+				if goal:
+					embed.add_field(name='Daily goal completion', value=goal)
+				embed.set_footer(text="Total XP: "+str(t_xp))
+				await self.bot.say(embed=embed)
+		except TypeError:
 			await self.bot.say("Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
-		elif t_opt_out:
-			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
-		else:
-			l_level, l_min = c.execute('SELECT level, min_xp FROM levels WHERE min_xp<?', (t_xp,)).fetchall()[-1]
-			f_name, f_leader, f_mentionable, f_colour, f_logo = c.execute('SELECT name, leader, role, colour, logo FROM teams WHERE id=?', (t_team,)).fetchone()
-			embed=discord.Embed(title=t_pogo, timestamp=(datetime.datetime.fromtimestamp(t_time, tz)), color=f_colour)
-			embed.add_field(name='Name', value=t_name or 'Undisclosed')
-			embed.add_field(name='Team', value=f_name)
-			embed.add_field(name='Level', value=l_level)
-			embed.add_field(name='XP', value=t_xp-l_min)
-			embed.set_thumbnail(url=f_logo)
-			if t_cheat == 1:
-				embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
-				embed.add_field(name='Comments', value='{} is a known spoofer'.format(t_pogo))
-			if goal:
-				embed.add_field(name='Daily goal completion', value=goal)
-			embed.set_footer(text="Total XP: "+str(t_xp))
-			await self.bot.say(embed=embed)	
 	
 	async def addProfile(self, discord, name, team, level, xp, cheat=None):
 		if not (team in ['Valor','Mystic','Instinct', 'Teamless']):
@@ -133,7 +134,7 @@ class Profiles:
 			
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=None): #adding a user to the database
+	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
 		if opt.title() == 'Spoofer':
@@ -144,7 +145,7 @@ class Profiles:
 		
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=None): #applies the correct roles to a user and adds the user to the database
+	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #applies the correct roles to a user and adds the user to the database
 		await self.bot.send_typing(ctx.message.channel)
 		if not (team.title() in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(team.title()))
