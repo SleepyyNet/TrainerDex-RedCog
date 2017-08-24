@@ -121,10 +121,16 @@ class Profiles:
 			await asyncio.sleep(1)
 			if t_goalD and t_goalT:
 				await self.profileCard(t_pogo, ctx.message.channel, goal_daily=True, goal_total=True)
+				if t_goalT<xp:
+					c.execute("UPDATE trainers SET goalTotal=? WHERE discord_id=?", (None, ctx.message.author.id,))
+					await self.bot.say("Congratulations, you've reached your goal.")
 			elif t_goalD:
 				await self.profileCard(t_pogo, ctx.message.channel, goal_daily=True)
 			elif t_goalT:
 				await self.profileCard(t_pogo, ctx.message.channel, goal_total=True)
+				if t_goalT<=xp:
+					c.execute("UPDATE trainers SET goalTotal=None WHERE discord_id=?", (ctx.message.author.id,))
+					await self.bot.say("🎉 Congratulations, you've reached your goal. 🎉")
 			else:
 				await self.profileCard(t_pogo, ctx.message.channel)
 		else:
