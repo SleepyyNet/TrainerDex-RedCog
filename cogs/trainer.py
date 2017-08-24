@@ -150,13 +150,28 @@ class Profiles:
 			return
 		
 	@commands.command(pass_context=True)
-	async def setgoal(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
+	async def setgoaldaily(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
 		await self.bot.send_typing(ctx.message.channel)
 		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if t_pogo:
-			c.execute("UPDATE trainers SET goal=? WHERE discord_id=?", (goal, ctx.message.author.id))
+			c.execute("UPDATE trainers SET goalDaily=? WHERE discord_id=?", (goal, ctx.message.author.id))
 			trnr.commit()
 			await self.bot.say("Your daily XP goal is set to {}.".format(goal))
+		else:
+			await self.bot.say(NOT_IN_SYSTEM)
+			return
+		
+	@commands.command(pass_context=True)
+	async def setgoaltotal(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
+		await self.bot.send_typing(ctx.message.channel)
+		t_pogo, t_xp = c.execute('SELECT pogo_name, total_xp FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
+		if t_pogo:
+			if goal>t_xp:
+				c.execute("UPDATE trainers SET goalTotal=? WHERE discord_id=?", (goal, ctx.message.author.id))
+				trnr.commit()
+				await self.bot.say("Your total XP goal is set to {}.".format(goal))
+			else:
+				await self.bot.say("Your goal is lower than your current XP.")
 		else:
 			await self.bot.say(NOT_IN_SYSTEM)
 			return
