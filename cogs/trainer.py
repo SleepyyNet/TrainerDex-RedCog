@@ -32,18 +32,30 @@ class Profiles:
 	
 	def __init__(self, bot):
 		self.bot = bot
-		
-	async def goalDaily(self, discord):
-		t_pogo, t_xp, t_time, t_goal = c.execute('SELECT pogo_name, total_xp, last_updated, goal FROM trainers WHERE discord_id=?', (discord,)).fetchone()
+	
+	async def updateDiff(self, discord):
+		t_pogo, t_xp, t_time= c.execute('SELECT pogo_name, total_xp, last_updated FROM trainers WHERE discord_id=?', (discord,)).fetchone()
 		h_pogo, h_xp, h_time = c.execute('SELECT trainer, xp, time FROM xp_history WHERE trainer=? AND time<? ORDER BY time DESC', (t_pogo, t_time-64800)).fetchone()
 		diff = int(t_xp)-int(h_xp)
-		days = int(roundDays(t_time-h_time)/86400)
-		goal = t_goal
-		goal_cent = round(((diff/days)/goal)*100,2)
-		return goal_cent		
+		pure_time = t_time-h_time
+		days = int(roundDays(pure_time)/86400)
+		return diff, days, pure_time
 		
-	async def profileCard(self, name, channel, goal:str=None):
-		try:
+	async def goalDaily(self, discord):
+		t_goal, = c.execute('SELECT goalDaily FROM trainers WHERE discord_id=?', (discord,)).fetchone()
+		diff, days, pureTime = await self.updateDiff(discord=discord)
+		goal_cent = round(((diff/days)/t_goal)*100,2)
+		return goal_cent
+	
+	async def goalTotal(self, discord):
+		t_xp, t_time, t_goal, = c.execute('SELECT total_xp, last_updated, goalTotal FROM trainers WHERE discord_id=?', (discord,)).fetchone()
+		diff, days, pureTime = await self.updateDiff(discord=discord)
+		goal_remaining = t_goal-t_xp
+		g_eta = ((goal_remaining)/(diff/days))*86400
+		return g_eta, diff, goal_remaining, t_goal
+		
+	async def profileCard(self, name, channel, goal_daily=False, goal_total=False):
+#		try:
 			t_pogo, t_xp, t_time, t_team, t_discord, t_name, t_cheat, t_opt_out = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name, spoofer, no_stats FROM trainers WHERE pogo_name=?', (name,)).fetchone()
 			if t_opt_out:
 				await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
@@ -54,17 +66,25 @@ class Profiles:
 				embed.add_field(name='Name', value=t_name or 'Undisclosed')
 				embed.add_field(name='Team', value=f_name)
 				embed.add_field(name='Level', value=l_level)
-				embed.add_field(name='XP', value=t_xp-l_min)
+				if l_level == 40:
+					embed.add_field(name='XP', value=t_xp-l_min)
+				else:
+					embed.add_field(name='XP', value='{}/{}'.format(t_xp-l_min, (c.execute('SELECT min_xp FROM levels WHERE level=?', (l_level+1,)).fetchone()[0]-l_min)))
 				embed.set_thumbnail(url=f_logo)
 				if t_cheat == 1:
 					embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
 					embed.add_field(name='Comments', value='{} is a known spoofer'.format(t_pogo))
-				if goal:
-					embed.add_field(name='Daily goal completion', value=goal)
+				if goal_daily==True:
+					embed.add_field(name='Daily goal completion', value='{}%'.format(await self.goalDaily(discord=t_discord)))
+				if goal_total==True:
+					g_eta, g_diff, g_remaining, g_goal = await self.goalTotal(discord=t_discord)
+					g_completetime = datetime.datetime.fromtimestamp(time.time()+g_eta).strftime("%a %d %b '%y around %-I %p")
+					embed.add_field(name='Goal Completion', value='{}/{}'.format(t_xp, g_goal))
+					embed.add_field(name='Goal ETA', value=g_completetime)
 				embed.set_footer(text="Total XP: "+str(t_xp))
 				await self.bot.say(embed=embed)
-		except TypeError:
-			await self.bot.say("Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
+#		except TypeError:
+#			await self.bot.say("Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
 	
 	async def addProfile(self, discord, name, team, level, xp, cheat=None):
 		if not (team in ['Valor','Mystic','Instinct', 'Teamless']):
@@ -90,7 +110,7 @@ class Profiles:
 	@commands.command(pass_context=True)
 	async def updatexp(self, ctx, xp: int): #updatexp - a command used for updating the total experience of a user
 		await self.bot.send_typing(ctx.message.channel)
-		t_pogo, t_xp, t_time, t_goal = c.execute('SELECT pogo_name, total_xp, last_updated, goal FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
+		t_pogo, t_xp, t_time, t_goalD, t_goalT = c.execute('SELECT pogo_name, total_xp, last_updated, goalDaily, goalTotal FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if t_xp:
 			if int(t_xp) > int(xp):
 				await self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
@@ -98,8 +118,13 @@ class Profiles:
 			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (t_pogo, t_xp, t_time))
 			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE discord_id=?", (int(xp), int(time.time()), ctx.message.author.id))
 			trnr.commit()
-			if t_goal:
-				await self.profileCard(t_pogo, ctx.message.channel, goal='{}%'.format(str(await self.goalDaily(ctx.message.author.id))))
+			await asyncio.sleep(1)
+			if t_goalD and t_goalT:
+				await self.profileCard(t_pogo, ctx.message.channel, goal_daily=True, goal_total=True)
+			elif t_goalD:
+				await self.profileCard(t_pogo, ctx.message.channel, goal_daily=True)
+			elif t_goalT:
+				await self.profileCard(t_pogo, ctx.message.channel, goal_total=True)
 			else:
 				await self.profileCard(t_pogo, ctx.message.channel)
 		else:
@@ -176,6 +201,6 @@ class Profiles:
 				else:
 					await self.addProfile(mbr.id, name, team.title(), level, xp)
 				await self.profileCard(name, ctx.message.channel) 
-		
+
 def setup(bot):
     bot.add_cog(Profiles(bot))
