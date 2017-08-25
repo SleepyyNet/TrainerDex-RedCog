@@ -104,9 +104,18 @@ class Profiles:
 #Public Commands
 	
 	@commands.command(pass_context=True)
-	async def whois(self, ctx, name: str): #user lookup
+	async def whois(self, ctx, mention): #user lookup
 		await self.bot.send_typing(ctx.message.channel)
-		await self.profileCard(name, ctx.message.channel)
+		try:
+			mbr = ctx.message.mentions[0].id
+		except:
+			mbr = None
+		try:
+			t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=? OR pogo_name=?', (mbr,mention)).fetchone()
+		except TypeError:
+			await self.bot.say("TypeError: Likely user not found!")
+		else:
+			await self.profileCard(t_pogo, ctx.message.channel)
 
 	@commands.command(pass_context=True)
 	async def updatexp(self, ctx, xp: int): #updatexp - a command used for updating the total experience of a user
@@ -178,6 +187,37 @@ class Profiles:
 			return
 
 #Mod-commands
+
+	@commands.command(pass_context=True)
+	@checks.mod_or_permissions(assign_roles=True)
+	async def spoofer(self, ctx, mention):
+		await self.bot.send_typing(ctx.message.channel)
+		try:
+			mbr = ctx.message.mentions[0].id
+		except:
+			mbr = None
+		try:
+			t_pogo, t_cheat = c.execute('SELECT pogo_name, spoofer FROM trainers WHERE discord_id=? OR pogo_name=?', (mbr,mention)).fetchone()
+		except:
+			await self.bot.say("Error!")
+		else:
+			if t_cheat==1:
+				try:
+					c.execute('UPDATE trainers SET spoofer=? WHERE pogo_name=?', (0, t_pogo))
+				except sqlite3.IntegrityError:
+					await self.bot.say("Error!")
+				else:
+					await self.bot.say("Success! You've unset the `spoofer` flag on {}!".format(t_pogo))
+					trnr.commit()
+			else:
+				try:
+					c.execute('UPDATE trainers SET spoofer=?, spoofed=? WHERE pogo_name=?', (1,1, t_pogo))
+				except sqlite3.IntegrityError:
+					await self.bot.say("Error!")
+				else:
+					await self.bot.say("Success! You've set the `spoofer` flag on {}!".format(t_pogo))
+					trnr.commit()
+			await self.profileCard(t_pogo, ctx.message.channel)
 
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
