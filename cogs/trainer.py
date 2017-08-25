@@ -33,9 +33,10 @@ class Profiles:
 	def __init__(self, bot):
 		self.bot = bot
 	
-	async def updateDiff(self, discord):
+	async def updateDiff(self, discord, num_days):
 		t_pogo, t_xp, t_time= c.execute('SELECT pogo_name, total_xp, last_updated FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-		h_pogo, h_xp, h_time = c.execute('SELECT trainer, xp, time FROM xp_history WHERE trainer=? AND time<? ORDER BY time DESC', (t_pogo, t_time-64800)).fetchone()
+		seconds = t_time-(num_days*86400)-21600
+		h_pogo, h_xp, h_time = c.execute('SELECT trainer, xp, time FROM xp_history WHERE trainer=? AND time<? ORDER BY time DESC', (t_pogo, seconds)).fetchone()
 		diff = int(t_xp)-int(h_xp)
 		pure_time = t_time-h_time
 		days = int(roundDays(pure_time)/86400)
@@ -43,24 +44,24 @@ class Profiles:
 		
 	async def goalDaily(self, discord):
 		t_goal, = c.execute('SELECT goalDaily FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-		diff, days, pureTime = await self.updateDiff(discord=discord)
+		diff, days, pureTime = await self.updateDiff(discord=discord, num_days=1)
 		goal_cent = round(((diff/days)/t_goal)*100,2)
 		return goal_cent
 	
 	async def goalTotal(self, discord):
 		t_xp, t_time, t_goal, = c.execute('SELECT total_xp, last_updated, goalTotal FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-		diff, days, pureTime = await self.updateDiff(discord=discord)
+		diff, days, pureTime = await self.updateDiff(discord=discord, num_days=3)
 		goal_remaining = t_goal-t_xp
 		g_eta = ((goal_remaining)/(diff/days))*86400
 		return g_eta, diff, goal_remaining, t_goal
 		
 	async def profileCard(self, name, channel, goal_daily=False, goal_total=False):
-#		try:
+		try:
 			t_pogo, t_xp, t_time, t_team, t_discord, t_name, t_cheat, t_opt_out = c.execute('SELECT pogo_name, total_xp, last_updated, team, discord_id, real_name, spoofer, no_stats FROM trainers WHERE pogo_name=?', (name,)).fetchone()
 			if t_opt_out:
 				await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
 			else:
-				l_level, l_min = c.execute('SELECT level, min_xp FROM levels WHERE min_xp<?', (t_xp,)).fetchall()[-1]
+				l_level, l_min = c.execute('SELECT level, min_xp FROM levels WHERE min_xp<=?', (t_xp,)).fetchall()[-1]
 				f_name, f_leader, f_mentionable, f_colour, f_logo = c.execute('SELECT name, leader, role, colour, logo FROM teams WHERE id=?', (t_team,)).fetchone()
 				embed=discord.Embed(description="**"+t_pogo+"** | <@"+str(t_discord)+">", timestamp=(datetime.datetime.fromtimestamp(t_time, tz)), color=f_colour)
 				embed.add_field(name='Name', value=t_name or 'Undisclosed')
@@ -83,8 +84,8 @@ class Profiles:
 					embed.add_field(name='Goal ETA', value=g_completetime)
 				embed.set_footer(text="Total XP: "+str(t_xp))
 				await self.bot.say(embed=embed)
-#		except TypeError:
-#			await self.bot.say("Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
+		except TypeError:
+			await self.bot.say("Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
 	
 	async def addProfile(self, discord, name, team, level, xp, cheat=None):
 		if not (team in ['Valor','Mystic','Instinct', 'Teamless']):
@@ -99,7 +100,7 @@ class Profiles:
 		else:
 			await self.bot.say ("Successfully added {} to the database.".format(name))
 			trnr.commit()
-	
+
 #Public Commands
 	
 	@commands.command(pass_context=True)
@@ -136,7 +137,7 @@ class Profiles:
 		else:
 			await self.bot.say(NOT_IN_SYSTEM)
 			return
-		
+
 	@commands.command(pass_context=True)
 	async def setname(self, ctx, *, name: str): #setname - a command used for to set your name on your profile
 		await self.bot.send_typing(ctx.message.channel)
@@ -148,7 +149,7 @@ class Profiles:
 		else:
 			await self.bot.say(NOT_IN_SYSTEM)
 			return
-		
+
 	@commands.command(pass_context=True)
 	async def setgoaldaily(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
 		await self.bot.send_typing(ctx.message.channel)
@@ -160,7 +161,7 @@ class Profiles:
 		else:
 			await self.bot.say(NOT_IN_SYSTEM)
 			return
-		
+
 	@commands.command(pass_context=True)
 	async def setgoaltotal(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
 		await self.bot.send_typing(ctx.message.channel)
@@ -175,9 +176,9 @@ class Profiles:
 		else:
 			await self.bot.say(NOT_IN_SYSTEM)
 			return
-			
+
 #Mod-commands
-			
+
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
