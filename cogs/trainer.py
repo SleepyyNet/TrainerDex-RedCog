@@ -50,7 +50,7 @@ class Profiles:
 	
 	async def goalTotal(self, discord):
 		t_xp, t_time, t_goal, = c.execute('SELECT total_xp, last_updated, goalTotal FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-		diff, days, pureTime = await self.updateDiff(discord=discord, num_days=3)
+		diff, days, pureTime = await self.updateDiff(discord=discord, num_days=7)
 		goal_remaining = t_goal-t_xp
 		g_eta = ((goal_remaining)/(diff/days))*86400
 		return g_eta, diff, goal_remaining, t_goal
