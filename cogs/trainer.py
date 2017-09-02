@@ -111,18 +111,21 @@ class Profiles:
 #Public Commands
 	
 	@commands.command(pass_context=True)
-	async def whois(self, ctx, mention): #user lookup
+	async def whois(self, ctx, mention, extra=''): #user lookup
 		await self.bot.send_typing(ctx.message.channel)
 		try:
 			mbr = ctx.message.mentions[0].id
 		except:
 			mbr = None
 		try:
-			t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE (discord_id=? AND primaryac=1) OR (pogo_name=?)', (mbr,mention)).fetchone()
+			t_pogo, t_goal = c.execute('SELECT pogo_name, goalTotal FROM trainers WHERE (discord_id=? AND primaryac=1) OR (pogo_name=?)', (mbr,mention)).fetchone()
 		except TypeError:
 			await self.bot.say("TypeError: Likely user not found!")
 		else:
-			await self.profileCard(t_pogo, ctx.message.channel)
+			if extra.title()=="Extra" and t_goal:
+				await self.profileCard(t_pogo, ctx.message.channel, goal_total=True)
+			else:
+				await self.profileCard(t_pogo, ctx.message.channel)
 
 	@commands.command(pass_context=True)
 	async def updatexp(self, ctx, xp: int, profile=None): #updatexp - a command used for updating the total experience of a user
