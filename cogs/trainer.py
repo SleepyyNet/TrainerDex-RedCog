@@ -103,7 +103,7 @@ class Profiles:
 		try:
 			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team, spoofed, spoofer, primaryac) VALUES (?,?,?,?,?,?,?,?)",(name, discord, l_min+int(xp), int(time.time()), f_id, cheat, cheat, primary))
 		except sqlite3.IntegrityError:
-			await self.bot.say("Happy Error: Profile already exists. Just use the `updatexp`command :slightsmile:")
+			await self.bot.say("`HappyError: Profile already exists.` :slightsmile:")
 		else:
 			await self.bot.say ("Successfully added {} to the database.".format(name))
 			trnr.commit()
