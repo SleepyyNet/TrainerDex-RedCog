@@ -87,14 +87,21 @@ class Profiles:
 		except TypeError:
 			await self.bot.say("Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
 	
-	async def addProfile(self, discord, name, team, level, xp, cheat=None):
+	async def addProfile(self, discord, name, team, level, xp, primary=True, cheat=None):
 		if not (team in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(tteam))
 			return
 		l_level, l_min = c.execute('SELECT level, min_xp FROM levels WHERE level=?', (level,)).fetchone()
 		f_id, = c.execute('SELECT id FROM teams WHERE name=?', (team,)).fetchone()
+		if primary==True:
+			primary=1
+		elif primary==False:
+			primary=0
+		else:
+			await self.bot.say("`TypeError: primary value is a boolean yet somehow it's erroring.`")
+			await self.bot.say("It's officially the end of the world.")
 		try:
-			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team, spoofed, spoofer) VALUES (?,?,?,?,?,?,?)",(name, discord, l_min+int(xp), int(time.time()), f_id, cheat, cheat))
+			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team, spoofed, spoofer, primaryac) VALUES (?,?,?,?,?,?,?,?)",(name, discord, l_min+int(xp), int(time.time()), f_id, cheat, cheat, primary))
 		except sqlite3.IntegrityError:
 			await self.bot.say("Happy Error: Profile already exists. Just use the `updatexp`command :slightsmile:")
 		else:
@@ -111,22 +118,28 @@ class Profiles:
 		except:
 			mbr = None
 		try:
-			t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=? OR pogo_name=?', (mbr,mention)).fetchone()
+			t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE (discord_id=? AND primaryac=1) OR (pogo_name=?)', (mbr,mention)).fetchone()
 		except TypeError:
 			await self.bot.say("TypeError: Likely user not found!")
 		else:
 			await self.profileCard(t_pogo, ctx.message.channel)
 
 	@commands.command(pass_context=True)
-	async def updatexp(self, ctx, xp: int): #updatexp - a command used for updating the total experience of a user
+	async def updatexp(self, ctx, xp: int, profile=None): #updatexp - a command used for updating the total experience of a user
 		await self.bot.send_typing(ctx.message.channel)
-		t_pogo, t_xp, t_time, t_goalD, t_goalT = c.execute('SELECT pogo_name, total_xp, last_updated, goalDaily, goalTotal FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
+		if profile==None:
+			t_pogo, t_xp, t_time, t_goalD, t_goalT = c.execute('SELECT pogo_name, total_xp, last_updated, goalDaily, goalTotal FROM trainers WHERE discord_id=? AND primaryac=1', (ctx.message.author.id,)).fetchone()
+		else:
+			try:
+				t_pogo, t_xp, t_time, t_goalD, t_goalT = c.execute('SELECT pogo_name, total_xp, last_updated, goalDaily, goalTotal FROM trainers WHERE discord_id=? AND primaryac=0 AND pogo_name=?', (ctx.message.author.id,profile)).fetchone()
+			except TypeError:
+				return await self.bot.say("`TypeError` - No secondary account called {} belonging to <@{}> found.".format(profile,ctx.message.author.id))
 		if t_xp:
 			if int(t_xp) > int(xp):
 				await self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
 				return
 			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (t_pogo, t_xp, t_time))
-			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE discord_id=?", (int(xp), int(time.time()), ctx.message.author.id))
+			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE pogo_name=?", (int(xp), int(time.time()), t_pogo))
 			trnr.commit()
 			await asyncio.sleep(1)
 			if t_goalD and t_goalT:
@@ -228,6 +241,17 @@ class Profiles:
 			await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1)
 		else:
 			await self.addProfile(mbr.id, name, team.title(), level, xp)
+		await self.profileCard(name, ctx.message.channel)
+		
+	@commands.command(pass_context=True)
+	@checks.mod_or_permissions(assign_roles=True)
+	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
+		await self.bot.send_typing(ctx.message.channel)
+		mbr = ctx.message.mentions[0]
+		if opt.title() == 'Spoofer':
+			await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1, primary=False)
+		else:
+			await self.addProfile(mbr.id, name, team.title(), level, xp, primary=False)
 		await self.profileCard(name, ctx.message.channel)
 		
 	@commands.command(pass_context=True)
