@@ -19,13 +19,20 @@ def roundDays(x):
 
 class Calls:
 
-	def getName(self, discord):
-		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-		return t_pogo
+	def getName(discord):
+		t = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=? AND primaryac=1', (discord.id,)).fetchone()
+		if t:
+			return t[0]
+		else:
+			return discord.nick if discord.nick else str(discord.name)
 	
-	def getMember(self, pogo):
-		t_discord, = c.execute('SELECT discord_id FROM trainers WHERE pogo_name=?', (pogo,)).fetchone()
-		return t_discord
+	def getMember(pogo):
+		try:
+			t_discord, = c.execute('SELECT discord_id FROM trainers WHERE pogo_name=?', (pogo,)).fetchone()
+		except:
+			return None
+		else:
+			return t_discord
 
 class Profiles:
 	"""Trainer profile system"""
