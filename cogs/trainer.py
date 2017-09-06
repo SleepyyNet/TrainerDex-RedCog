@@ -11,6 +11,7 @@ from discord.ext import commands
 tz = pytz.timezone('Europe/London')
 trnr = sqlite3.connect('trainers.db')
 c = trnr.cursor()
+parentLogsChannel = '355112430713438209'
 
 NOT_IN_SYSTEM = "Uh-oh! Looks like you're not registered into the system. Please ask an admin to handle this for you!"
 
@@ -94,7 +95,7 @@ class Profiles:
 		except TypeError:
 			await self.bot.say("Unfortunately, I couldn't find {} in the database. Are you sure you spelt their name right?".format(name))
 	
-	async def addProfile(self, discord, name, team, level, xp, primary=True, cheat=None):
+	async def addProfile(self, mention, name, team, level, xp, primary=True, cheat=None):
 		if not (team in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(tteam))
 			return
@@ -108,11 +109,12 @@ class Profiles:
 			await self.bot.say("`TypeError: primary value is a boolean yet somehow it's erroring.`")
 			await self.bot.say("It's officially the end of the world.")
 		try:
-			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team, spoofed, spoofer, primaryac) VALUES (?,?,?,?,?,?,?,?)",(name, discord, l_min+int(xp), int(time.time()), f_id, cheat, cheat, primary))
+			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team, spoofed, spoofer, primaryac) VALUES (?,?,?,?,?,?,?,?)",(name, mention, l_min+int(xp), int(time.time()), f_id, cheat, cheat, primary))
 		except sqlite3.IntegrityError:
 			await self.bot.say("`HappyError: Profile already exists.` :slightsmile:")
 		else:
-			await self.bot.say ("Successfully added {} to the database.".format(name))
+			await self.bot.say("Successfully added {} to the database.".format(name))
+			await self.bot.send_message(discord.Object(parentLogsChannel), "Added {} to the database.".format(name))
 			trnr.commit()
 
 #Public Commands
@@ -151,6 +153,7 @@ class Profiles:
 			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (t_pogo, t_xp, t_time))
 			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE pogo_name=?", (int(xp), int(time.time()), t_pogo))
 			trnr.commit()
+			await self.bot.send_message(discord.Object(parentLogsChannel), "Updated {}'s XP to {}".format(t_pogo, xp))
 			await asyncio.sleep(1)
 			if t_goalD and t_goalT:
 				await self.profileCard(t_pogo, ctx.message.channel, goal_daily=True, goal_total=True)
@@ -177,6 +180,7 @@ class Profiles:
 		if t_pogo:
 			c.execute("UPDATE trainers SET real_name=? WHERE discord_id=?", (name, ctx.message.author.id))
 			trnr.commit()
+			await self.bot.send_message(discord.Object(parentLogsChannel), "Set {}'s name to {}".format(t_pogo, xp))
 			await self.profileCard(t_pogo, ctx.message.channel)
 		else:
 			await self.bot.say(NOT_IN_SYSTEM)
@@ -190,6 +194,7 @@ class Profiles:
 			c.execute("UPDATE trainers SET goalDaily=? WHERE discord_id=?", (goal, ctx.message.author.id))
 			trnr.commit()
 			await self.bot.say("Your daily XP goal is set to {}.".format(goal))
+			await self.bot.send_message(discord.Object(parentLogsChannel), "Set {}'s daily goal to {}".format(t_pogo, goal))
 		else:
 			await self.bot.say(NOT_IN_SYSTEM)
 			return
@@ -203,6 +208,7 @@ class Profiles:
 				c.execute("UPDATE trainers SET goalTotal=? WHERE discord_id=?", (goal, ctx.message.author.id))
 				trnr.commit()
 				await self.bot.say("Your total XP goal is set to {}.".format(goal))
+				await self.bot.send_message(discord.Object(parentLogsChannel), "Set {}'s total goal to {}".format(t_pogo, goal))
 			else:
 				await self.bot.say("Your goal is lower than your current XP.")
 		else:
@@ -231,6 +237,7 @@ class Profiles:
 					await self.bot.say("Error!")
 				else:
 					await self.bot.say("Success! You've unset the `spoofer` flag on {}!".format(t_pogo))
+					await self.bot.send_message(discord.Object(parentLogsChannel), "Unset `spoofer` flag on {}!".format(t_pogo))
 					trnr.commit()
 			else:
 				try:
@@ -239,6 +246,7 @@ class Profiles:
 					await self.bot.say("Error!")
 				else:
 					await self.bot.say("Success! You've set the `spoofer` flag on {}!".format(t_pogo))
+					await self.bot.send_message(discord.Object(parentLogsChannel), "Set `spoofer` flag on {}!".format(t_pogo))
 					trnr.commit()
 			await self.profileCard(t_pogo, ctx.message.channel)
 
@@ -292,6 +300,7 @@ class Profiles:
 				await self.bot.say("Error: I don't have permission to set roles. Aborted!")
 			else:
 				await self.bot.say("{} has been approved, super. They're probably super cool, be nice to them.".format(name))
+				await self.bot.send_message(discord.Object(parentLogsChannel), "<@{}> added to {}!".format(mbr.id, ctx.message.server.name))
 				if opt.title() == 'Spoofer':
 					await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1)
 				else:
