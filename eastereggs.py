@@ -14,7 +14,14 @@ class EasterEggs:
 
 	@commands.command(pass_context=True)
 	async def excuse(self, ctx):
-		excuses = ['{} is finding socks.', '{} is only '+str(random.randint(1,120))+' minutes away.', 'A zebra is running down the road and this is holding {} up.', '{}’s cat got stuck in the toilet.', "It's raining.", 'Pizzzaaaaaaa 🍕🍍', '{} just put a casserole in the oven.', "{}'s plastic surgery needed some 'tweaking' to get it just right.", '{} accidentally got on a plane. ✈️', '{} laH wej yIv.']
+		excuses = [
+			'{} is finding socks.', 
+			'{} is only '+str(random.randint(1,120))+' minutes away.', 
+			'{}’s cat got stuck in the toilet.', 
+			'Pizzzaaaaaaa 🍕🍍', 
+			'{} just put a casserole in the oven.', 
+			'{} accidentally got on a plane. ✈️', 
+		]
 		await self.bot.send_typing(ctx.message.channel)
 		await self.bot.say(random.choice(excuses).format(self.get_display_name(ctx.message.author)))
 		
