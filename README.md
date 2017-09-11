@@ -9,3 +9,4 @@ Requirements:
 * ratelimit
 * discord
 * [red - duh](https://github.com/Cog-Creators/Red-DiscordBot)
+* TrainerDex.py - it's in `dependencies` - create a symlink from `[red]/lib/TrainerDex.py` to `[repo]/dependencies/trainerdex/TrainerDex.py`

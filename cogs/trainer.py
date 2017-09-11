@@ -2,15 +2,22 @@ import asyncio
 import pytz
 import time
 import datetime
-
+import configparser
 import sqlite3
 import discord
 from cogs.utils import checks
 from discord.ext import commands
+from TrainerDex import Requests
 
 tz = pytz.timezone('Europe/London')
 trnr = sqlite3.connect('trainers.db')
 c = trnr.cursor()
+config = configparser.ConfigParser()
+config.read('data/trainerdex/config.ini')
+if config['DEFAULT']:
+	r = Requests(token=config['DEFAULT']['token'])
+else:
+	r = Requests(token=None)
 
 NOT_IN_SYSTEM = "Uh-oh! Looks like you're not registered into the system. Please ask an admin to handle this for you!"
 
@@ -116,6 +123,16 @@ class Profiles:
 			trnr.commit()
 
 #Public Commands
+	
+	@commands.command()
+	async def dbcheck(self, username):
+		try:
+			trainer = r.getTrainer(username)[0]
+		except KeyError:
+			state=False
+		else:
+			state=True
+		await self.bot.say(str(state))
 	
 	@commands.command(pass_context=True)
 	async def whois(self, ctx, mention, extra=''): #user lookup
@@ -296,7 +313,17 @@ class Profiles:
 					await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1)
 				else:
 					await self.addProfile(mbr.id, name, team.title(), level, xp)
-				await self.profileCard(name, ctx.message.channel) 
+				await self.profileCard(name, ctx.message.channel)
+				
+	@commands.command(pass_context=True)
+	@checks.mod()
+	async def settoken(self, ctx, token):
+		await self.bot.delete_message(ctx.message)
+		config['DEFAULT'] = {'token': token}
+		with open('data/trainerdex/config.ini', 'w') as configfile:
+			config.write(configfile)
+		await self.bot.say("Reload the cog for the API token to take effect")
 
 def setup(bot):
     bot.add_cog(Profiles(bot))
+	
