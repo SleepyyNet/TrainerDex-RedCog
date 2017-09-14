@@ -5,7 +5,11 @@ import datetime
 import discord
 from cogs.utils import checks
 from discord.ext import commands
-from TrainerDex import Requests
+try:
+	from TrainerDex import Requests
+	importedTrainerDex = True
+except:
+	importedTrainerDex = False
 from data.TrainerDex.config import Config
 
 tz = pytz.timezone('Europe/London')
@@ -251,5 +255,7 @@ class Profiles:
 				
 
 def setup(bot):
-    bot.add_cog(Profiles(bot))
-	
+	if importedTrainerDex is True:
+		bot.add_cog(Profiles(bot))
+	else:
+		raise RuntimeError('You need to install the TrainerDex.py library.')
