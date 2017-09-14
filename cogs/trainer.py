@@ -113,29 +113,13 @@ class Profiles:
 				trainer = None
 				return await self.bot.say("Cannot find an account called {} belonging to <@{}>.".format(profile,ctx.message.author.id))
 		if trainer is not None:
-#			if int(t_xp) > int(xp):
-#				await self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
-#				return
-#			c.execute("INSERT INTO xp_history (trainer, xp, time) VALUES (?,?,?)", (t_pogo, t_xp, t_time))
-#			c.execute("UPDATE trainers SET total_xp=?, last_updated=? WHERE pogo_name=?", (int(xp), int(time.time()), t_pogo))
-#			trnr.commit()
-#			await asyncio.sleep(1)
-#			if t_goalD and t_goalT:
-#				await self.profileCard(t_pogo, ctx.message.channel, goal_daily=True, goal_total=True)
-#				if t_goalT<xp:
-#					c.execute("UPDATE trainers SET goalTotal=? WHERE discord_id=?", (None, ctx.message.author.id,))
-#					await self.bot.say("Congratulations, you've reached your goal.")
-#			elif t_goalD:
-#				await self.profileCard(t_pogo, ctx.message.channel, goal_daily=True)
-#			elif t_goalT:
-#				await self.profileCard(t_pogo, ctx.message.channel, goal_total=True)
-#				if t_goalT<=xp:
-#					c.execute("UPDATE trainers SET goalTotal=None WHERE discord_id=?", (ctx.message.author.id,))
-#					await self.bot.say("🎉 Congratulations, you've reached your goal. 🎉")
-#			else:
-#				await self.profileCard(t_pogo, ctx.message.channel)
+			trainer = r.getTrainer(trainer)
+			if int(trainer.xp) > int(xp):
+				return self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
+		update = r.addUpdate(trainer.id, xp)
+		return self.profileCard(trainer.username)
 		elif trainer is None:
-			return self.bot.say(NOT_IN_SYSTEM)
+			return
 
 	@commands.group(pass_context=True)
 	async def set(self, ctx):
