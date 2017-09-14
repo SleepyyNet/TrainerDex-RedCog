@@ -18,6 +18,7 @@ def roundDays(x):
 	return int(86500 * round(float(x)/86400))
 
 class Calls:
+	"""Useful functions"""
 
 	def getName(discord):
 		t = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=? AND primaryac=1', (discord.id,)).fetchone()
@@ -35,7 +36,7 @@ class Calls:
 			return t_discord
 
 class Profiles:
-	"""Trainer profile system"""
+	"""TrainerDex"""
 	
 	def __init__(self, bot):
 		self.bot = bot
@@ -118,7 +119,8 @@ class Profiles:
 #Public Commands
 	
 	@commands.command(pass_context=True)
-	async def whois(self, ctx, mention, extra=''): #user lookup
+	async def whois(self, ctx, mention, extra=''):
+		"""user lookup"""
 		await self.bot.send_typing(ctx.message.channel)
 		try:
 			mbr = ctx.message.mentions[0].id
@@ -135,7 +137,8 @@ class Profiles:
 				await self.profileCard(t_pogo, ctx.message.channel)
 
 	@commands.command(pass_context=True)
-	async def updatexp(self, ctx, xp: int, profile=None): #updatexp - a command used for updating the total experience of a user
+	async def updatexp(self, ctx, xp: int, profile=None):
+		"""a command used for updating the total experience of a user"""
 		await self.bot.send_typing(ctx.message.channel)
 		if profile==None:
 			t_pogo, t_xp, t_time, t_goalD, t_goalT = c.execute('SELECT pogo_name, total_xp, last_updated, goalDaily, goalTotal FROM trainers WHERE discord_id=? AND primaryac=1', (ctx.message.author.id,)).fetchone()
@@ -171,7 +174,8 @@ class Profiles:
 			return
 
 	@commands.command(pass_context=True)
-	async def setname(self, ctx, *, name: str): #setname - a command used for to set your name on your profile
+	async def setname(self, ctx, *, name: str):
+		"""a command used for to set your name on your profile"""
 		await self.bot.send_typing(ctx.message.channel)
 		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if t_pogo:
@@ -183,7 +187,8 @@ class Profiles:
 			return
 
 	@commands.command(pass_context=True)
-	async def setgoaldaily(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
+	async def setgoaldaily(self, ctx, goal: int):
+		"""a command used for to set your daily goal on your profile"""
 		await self.bot.send_typing(ctx.message.channel)
 		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if t_pogo:
@@ -195,7 +200,8 @@ class Profiles:
 			return
 
 	@commands.command(pass_context=True)
-	async def setgoaltotal(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
+	async def setgoaltotal(self, ctx, goal: int):
+		"""a command used for to set your total goal on your profile"""
 		await self.bot.send_typing(ctx.message.channel)
 		t_pogo, t_xp = c.execute('SELECT pogo_name, total_xp FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 		if t_pogo:
@@ -214,6 +220,7 @@ class Profiles:
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def spoofer(self, ctx, mention):
+		"""spoofers be here"""
 		await self.bot.send_typing(ctx.message.channel)
 		try:
 			mbr = ctx.message.mentions[0].id
@@ -244,7 +251,8 @@ class Profiles:
 
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
+	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
+		"""adding a user to the database"""
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
 		if opt.title() == 'Spoofer':
@@ -255,7 +263,8 @@ class Profiles:
 		
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
+	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
+		"""adding a second profile - ew"""
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
 		if opt.title() == 'Spoofer':
@@ -266,7 +275,8 @@ class Profiles:
 		
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
-	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #applies the correct roles to a user and adds the user to the database
+	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
+		"""applies the correct roles to a user and adds the user to the database"""
 		await self.bot.send_typing(ctx.message.channel)
 		if not (team.title() in ['Valor','Mystic','Instinct', 'Teamless']):
 			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(team.title()))
