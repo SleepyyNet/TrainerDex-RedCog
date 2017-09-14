@@ -34,28 +34,7 @@ class Profiles:
 	def __init__(self, bot):
 		self.bot = bot
 		self.teams = r.getTeams()
-	
-#	async def updateDiff(self, discord, num_days):
-#		t_pogo, t_xp, t_time= c.execute('SELECT pogo_name, total_xp, last_updated FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-#		seconds = t_time-(num_days*86400)-21600
-#		h_pogo, h_xp, h_time = c.execute('SELECT trainer, xp, time FROM xp_history WHERE trainer=? AND time<? ORDER BY time DESC', (t_pogo, seconds)).fetchone()
-#		diff = int(t_xp)-int(h_xp)
-#		pure_time = t_time-h_time
-#		days = int(roundDays(pure_time)/86400)
-#		return diff, days, pure_time
 		
-#	async def goalDaily(self, discord):
-#		t_goal, = c.execute('SELECT goalDaily FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-#		diff, days, pureTime = await self.updateDiff(discord=discord, num_days=1)
-#		goal_cent = round(((diff/days)/t_goal)*100,2)
-#		return goal_cent
-	
-#	async def goalTotal(self, discord):
-#		t_xp, t_time, t_goal, = c.execute('SELECT total_xp, last_updated, goalTotal FROM trainers WHERE discord_id=?', (discord,)).fetchone()
-#		diff, days, pureTime = await self.updateDiff(discord=discord, num_days=7)
-#		goal_remaining = t_goal-t_xp
-#		g_eta = ((goal_remaining)/(diff/days))*86400
-#		return g_eta, diff, goal_remaining, t_goal
 		
 	async def profileCard(self, name, force=False):
 		trainer, statistics = r.getTrainer(name)
@@ -72,13 +51,6 @@ class Profiles:
 			if trainer.cheater is True:
 				embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
 				embed.add_field(name='Comments', value='{} is a known spoofer'.format(t_pogo))
-#			if trainer.goal_daily is not None:
-#				embed.add_field(name='Daily goal completion', value='{}%'.format(await self.goalDaily(discord=t_discord)))
-#			if goal_total is not None:
-#				g_eta, g_diff, g_remaining, g_goal = await self.goalTotal(discord=t_discord)
-#				g_completetime = datetime.datetime.fromtimestamp(time.time()+g_eta).strftime("%a %d %b '%y around %-I %p")
-#				embed.add_field(name='Goal Completion', value='{}/{}'.format(t_xp, g_goal))
-#				embed.add_field(name='Goal ETA', value=g_completetime)
 			embed.set_footer(text="Total XP: "+str(trainer.xp))
 			await self.bot.say(embed=embed)
 	
@@ -155,9 +127,16 @@ class Profiles:
 #		else:
 #			await self.bot.say(NOT_IN_SYSTEM)
 #			return
-#
-#	@commands.command(pass_context=True)
-#	async def setname(self, ctx, *, name: str): #setname - a command used for to set your name on your profile
+
+	@commands.group(pass_context=True)
+	async def set(self, ctx):
+		"""Changing information on your profile"""
+			
+        if ctx.invoked_subcommand is None:
+            await send_cmd_help(ctx)
+		
+#	@set.command(name="name", pass_context=True)
+#	async def _name_set(self, ctx, *, name: str): #setname - a command used for to set your name on your profile
 #		await self.bot.send_typing(ctx.message.channel)
 #		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 #		if t_pogo:
@@ -167,33 +146,19 @@ class Profiles:
 #		else:
 #			await self.bot.say(NOT_IN_SYSTEM)
 #			return
-#
-#	@commands.command(pass_context=True)
-#	async def setgoaldaily(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
-#		await self.bot.send_typing(ctx.message.channel)
-#		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
-#		if t_pogo:
-#			c.execute("UPDATE trainers SET goalDaily=? WHERE discord_id=?", (goal, ctx.message.author.id))
-#			trnr.commit()
-#			await self.bot.say("Your daily XP goal is set to {}.".format(goal))
-#		else:
-#			await self.bot.say(NOT_IN_SYSTEM)
-#			return
-#
-#	@commands.command(pass_context=True)
-#	async def setgoaltotal(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
-#		await self.bot.send_typing(ctx.message.channel)
-#		t_pogo, t_xp = c.execute('SELECT pogo_name, total_xp FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
-#		if t_pogo:
-#			if goal>t_xp:
-#				c.execute("UPDATE trainers SET goalTotal=? WHERE discord_id=?", (goal, ctx.message.author.id))
-#				trnr.commit()
-#				await self.bot.say("Your total XP goal is set to {}.".format(goal))
-#			else:
-#				await self.bot.say("Your goal is lower than your current XP.")
-#		else:
-#			await self.bot.say(NOT_IN_SYSTEM)
-#			return
+
+	@set.command(pass_context=True)
+	async def _goal_set(self, ctx, goal: int):
+		await self.bot.say("Goals are currently disabled. Sorry.")
+
+	@set.command(pass_context=True)
+	async def _goaldaily_set(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
+		await self.bot.say("Goals are currently disabled. Sorry. They will return as `.set goal daily/total`")
+	
+	@set.command(pass_context=True)
+	async def _goaltotal_set(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
+		await self.bot.say("Goals are currently disabled. Sorry. They will return as `.set goal daily/total`")
+
 #
 #Mod-commands
 #
