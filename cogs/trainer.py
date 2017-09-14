@@ -1,112 +1,118 @@
+import os
 import asyncio
-import pytz
 import time
 import datetime
 import discord
-from cogs.utils import checks
 from discord.ext import commands
+from .utils import checks
+from .utils.dataIO import dataIO
 try:
 	from TrainerDex import Requests
 	importedTrainerDex = True
 except:
 	importedTrainerDex = False
-from data.TrainerDex.config import Config
 
-tz = pytz.timezone('Europe/London')
-r = Requests(token=Config.token)
 
-class Calls: #Commented out functions not used by other cogs currently, left enough uncommented to not cause an error but to similate this not existing
+
+class Calls:
 
 	def getName(discord):
-#		t = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=? AND primaryac=1', (discord.id,)).fetchone()
-#		if t:
-#			return t[0]
-#		else:
-		return discord.nick if discord.nick else str(discord.name)
-#	
-#	def getMember(pogo):
-#		try:
-#			t_discord, = c.execute('SELECT discord_id FROM trainers WHERE pogo_name=?', (pogo,)).fetchone()
-#		except:
-#			return None
-#		else:
-#			return t_discord
+		return Profiles.getTrainerID(discord=discord.id).username if Profiles.getTrainerID(discord=discord.id).username else discord.display_name
+	
+	def getMember(ussername):
+		return Profiles.getTrainerID(username=username).discord_ID
 
 class Profiles:
 	"""Trainer profile system"""
 	
 	def __init__(self, bot):
 		self.bot = bot
+		self.config_path = "data/trainerdex/config.json"
+		self.json_data = dataIO.load_json(self.file_path)
+		r = Requests(token=self.json_data['token']ter)
 		self.teams = r.getTeams()
+		self.trainers = r.listTrainers() #Works like a cache
 		
+	async def getTrainerID(self, username=None, discord=None, account=None, prefered=True):
+		for trainer in self.trainers:
+			if username:
+				if trainer.username=username:
+					return trainer
+			elif discord:
+				if trainer.discord_ID=discord and trainer.prefered=True:
+					return trainer
+			elif account:
+				if trainer.account_ID=account and trainer.prefered=True:
+					return trainer
+			else:
+				return None
+		
+	async def getTeamByName(self, team):
+		for team in self.teams:
+			return team if team.name.title()=team.title():
 		
 	async def profileCard(self, name, force=False):
-		trainer, statistics = r.getTrainer(name)
+		trainerIDs = getTrainerID(username=name)
+		trainer= r.getTrainer(trainerIDs.trainer_ID)
 		team = self.teams[int(trainer.team)]
 		level=r.trainerLevels(xp=trainer.xp)
-		if statistics is False and force is False:
+		if trainer.statistics is False and force is False:
 			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
 		else:
-			embed=discord.Embed(description="**"+trainer.username+"**", timestamp=datetime.datetime.strptime(trainer.xp_time, "%Y-%m-%dT%H:%M:%S.%fZ"))
+			embed=discord.Embed(description="**"+trainer.username+"**", timestamp=trainer.xp_time)
 			embed.add_field(name='Team', value=team.name)
 			embed.add_field(name='Level', value=level)
 			embed.add_field(name='XP', value=int(trainer.xp) - int(r.trainerLevels(level=level)))
-#			embed.set_thumbnail(url=f_logo)
+			embed.set_thumbnail(url=team.image)
 			if trainer.cheater is True:
 				embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
 				embed.add_field(name='Comments', value='{} is a known spoofer'.format(t_pogo))
 			embed.set_footer(text="Total XP: "+str(trainer.xp))
 			await self.bot.say(embed=embed)
 	
-#	async def addProfile(self, discord, name, team, level, xp, primary=True, cheat=None):
-#		if not (team in ['Valor','Mystic','Instinct', 'Teamless']):
-#			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(tteam))
-#			return
-#		l_level, l_min = c.execute('SELECT level, min_xp FROM levels WHERE level=?', (level,)).fetchone()
-#		f_id, = c.execute('SELECT id FROM teams WHERE name=?', (team,)).fetchone()
-#		if primary==True:
-#			primary=1
-#		elif primary==False:
-#			primary=0
-#		else:
-#			await self.bot.say("`TypeError: primary value is a boolean yet somehow it's erroring.`")
-#			await self.bot.say("It's officially the end of the world.")
-#		try:
-#			c.execute("INSERT INTO trainers (pogo_name, discord_id, total_xp, last_updated, team, spoofed, spoofer, primaryac) VALUES (?,?,?,?,?,?,?,?)",(name, discord, l_min+int(xp), int(time.time()), f_id, cheat, cheat, primary))
-#		except sqlite3.IntegrityError:
-#			await self.bot.say("`HappyError: Profile already exists.` :slightsmile:")
-#		else:
-#			await self.bot.say ("Successfully added {} to the database.".format(name))
-#			trnr.commit()
+	async def addProfile(self, ctx, mention, username, xp, team, start_date=None, has_cheated=None, currently_cheats=None, name=None, prefered=True):
+		#Check existance
+		for trainer in r.listTrainers():
+			if trainer.username=username:
+				await self.bot.say("A record already exists in the database for this trainer")
+				await self.profileCard(name=trainer.username, force=True)
+				return
+		#Create or get auth.User
+		#Create or update discord user
+		for item in r.listDiscordUsers():
+			if item.discord_id=mention.id:
+				discordUser=item
+		if discordUser is None:
+			user = r.addUserAccount(username=username, first_name=name)
+			discordUser = r.addDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=mention.avatar_url, creation=mention.created_at, user=user)
+		elif discordUser.discord_id=mention.id:
+			user = discordUser.account_id
+			discordUser = r.putDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=mention.avatar_url)
+		#create or update trainer
+		trainer = r.addTrainer(username=username, team=self.getTeamByName(team).id, start_date=start_date, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered)
+		#create update object
+		update = r.addUpdate(trainer, xp)
+		return user, discordUser, trainer, update
+
 
 #Public Commands
 	
-#	@commands.command()
-#	async def dbcheck(self, username):
-#		try:
-#			trainer = r.getTrainer(username)[0]
-#		except KeyError:
-#			state=False
-#		else:
-#			state=True
-#		await self.bot.say(str(state))
-#	
 	@commands.command(pass_context=True)
 	async def whois(self, ctx, trainer): 
 		await self.bot.send_typing(ctx.message.channel)
 		await self.profileCard(trainer)
-#
-#	@commands.command(pass_context=True)
-#	async def updatexp(self, ctx, xp: int, profile=None): #updatexp - a command used for updating the total experience of a user
-#		await self.bot.send_typing(ctx.message.channel)
-#		if profile==None:
-#			t_pogo, t_xp, t_time, t_goalD, t_goalT = c.execute('SELECT pogo_name, total_xp, last_updated, goalDaily, goalTotal FROM trainers WHERE discord_id=? AND primaryac=1', (ctx.message.author.id,)).fetchone()
-#		else:
-#			try:
-#				t_pogo, t_xp, t_time, t_goalD, t_goalT = c.execute('SELECT pogo_name, total_xp, last_updated, goalDaily, goalTotal FROM trainers WHERE discord_id=? AND primaryac=0 AND pogo_name=?', (ctx.message.author.id,profile)).fetchone()
-#			except TypeError:
-#				return await self.bot.say("`TypeError` - No secondary account called {} belonging to <@{}> found.".format(profile,ctx.message.author.id))
-#		if t_xp:
+
+	@commands.command(pass_context=True, name='updatexp', aliases=['xp'])
+	async def updatexp(self, ctx, xp: int, profile=None): #updatexp - a command used for updating the total experience of a user
+		await self.bot.send_typing(ctx.message.channel)
+		if profile==None:
+			trainer = getTrainerID(discord=ctx.message.author.id)
+		else:
+			trainer = getTrainerID(username=profile)
+			if trainer.discord_ID!=ctx.message.author.id:
+				trainer = None
+				return await self.bot.say("Cannot find an account called {} belonging to <@{}>.".format(profile,ctx.message.author.id))
+		if trainer is not None:
 #			if int(t_xp) > int(xp):
 #				await self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
 #				return
@@ -128,9 +134,8 @@ class Profiles:
 #					await self.bot.say("🎉 Congratulations, you've reached your goal. 🎉")
 #			else:
 #				await self.profileCard(t_pogo, ctx.message.channel)
-#		else:
-#			await self.bot.say(NOT_IN_SYSTEM)
-#			return
+		elif trainer is None:
+			return self.bot.say(NOT_IN_SYSTEM)
 
 	@commands.group(pass_context=True)
 	async def set(self, ctx):
@@ -163,9 +168,8 @@ class Profiles:
 	async def _goaltotal_set(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
 		await self.bot.say("Goals are currently disabled. Sorry. They will return as `.set goal daily/total`")
 
-#
 #Mod-commands
-#
+
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
 #	async def spoofer(self, ctx, mention):
@@ -196,7 +200,7 @@ class Profiles:
 #					await self.bot.say("Success! You've set the `spoofer` flag on {}!".format(t_pogo))
 #					trnr.commit()
 #			await self.profileCard(t_pogo, ctx.message.channel)
-#
+
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
 #	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
@@ -207,7 +211,7 @@ class Profiles:
 #		else:
 #			await self.addProfile(mbr.id, name, team.title(), level, xp)
 #		await self.profileCard(name, ctx.message.channel)
-#		
+		
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
 #	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
@@ -218,7 +222,7 @@ class Profiles:
 #		else:
 #			await self.addProfile(mbr.id, name, team.title(), level, xp, primary=False)
 #		await self.profileCard(name, ctx.message.channel)
-#		
+		
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
 #	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #applies the correct roles to a user and adds the user to the database
@@ -254,7 +258,21 @@ class Profiles:
 #				await self.profileCard(name, ctx.message.channel)
 				
 
+def check_folders():
+	if not os.path.exists("data/trainerdex"):
+		print("Creating data/trainerdex folder...")
+		os.makedirs("data/cogfolder")
+		
+def check_files():
+	system = {"TrainerDex.py": {"Token": null}}
+	f = self.config_path
+	if not dataIO.is_valid_json(f):
+		print("Creating default token.json...")
+		dataIO.save_json(f, system)
+	
 def setup(bot):
+	check_folders()
+	check_files()
 	if importedTrainerDex is True:
 		bot.add_cog(Profiles(bot))
 	else:
