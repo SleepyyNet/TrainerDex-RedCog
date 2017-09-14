@@ -12,7 +12,10 @@ try:
 except:
 	importedTrainerDex = False
 
-
+settings_file = 'data/trainerdex/settings.json'
+json_data = dataIO.load_json(settings_file)
+token = json_data['token']
+r = Requests(token)
 
 class Calls:
 
@@ -27,9 +30,6 @@ class Profiles:
 	
 	def __init__(self, bot):
 		self.bot = bot
-		self.config_path = "data/trainerdex/config.json"
-		self.json_data = dataIO.load_json(self.file_path)
-		r = Requests(token=self.json_data['token']ter)
 		self.teams = r.getTeams()
 		self.trainers = r.listTrainers() #Works like a cache
 		
@@ -240,23 +240,41 @@ class Profiles:
 #				else:
 #					await self.addProfile(mbr.id, name, team.title(), level, xp)
 #				await self.profileCard(name, ctx.message.channel)
-				
 
+	@commands.group(pass_context=True)
+	@checks.is_owner()
+	async def tdset(self, ctx):
+		"""Settings for TrainerDex cog"""
+		if ctx.invoked_subcommand is None:
+			await self.bot.send_cmd_help(ctx)
+
+	@tdset.command(pass_context=True)
+	@checks.is_owner()
+	async def api(self, ctx, token: str):
+		"""Sets the TrainerDex API token - owner only"""
+		settings = dataIO.load_json(settings_file)
+		if token:
+			settings['token'] = token
+			dataIO.save_json(settings_file, settings)
+			await self.bot.say('```API token set```')
+	
 def check_folders():
 	if not os.path.exists("data/trainerdex"):
 		print("Creating data/trainerdex folder...")
-		os.makedirs("data/cogfolder")
+		os.makedirs("data/trainerdex")
 		
-def check_files():
-	system = {"TrainerDex.py": {"Token": null}}
-	f = self.config_path
+def check_file():
+	f = 'data/trainerdex/settings.json'
+	data = {}
+	data['token'] = ''
 	if not dataIO.is_valid_json(f):
 		print("Creating default token.json...")
-		dataIO.save_json(f, system)
+		dataIO.save_json(f, data)
 	
 def setup(bot):
 	check_folders()
-	check_files()
+	check_file()
+	importedTrainerDex = True
 	if importedTrainerDex is True:
 		bot.add_cog(Profiles(bot))
 	else:
