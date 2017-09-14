@@ -18,7 +18,8 @@ token = json_data['token']
 r = Requests(token)
 
 class Calls:
-
+	"""Useful tools"""
+	
 	def getName(discord):
 		return Profiles.getTrainerID(discord=discord.id).username if Profiles.getTrainerID(discord=discord.id).username else discord.display_name
 	
@@ -26,7 +27,7 @@ class Calls:
 		return Profiles.getTrainerID(username=username).discord_ID
 
 class Profiles:
-	"""Trainer profile system"""
+	"""TrainerDex"""
 	
 	def __init__(self, bot):
 		self.bot = bot
@@ -36,23 +37,24 @@ class Profiles:
 	async def getTrainerID(self, username=None, discord=None, account=None, prefered=True):
 		for trainer in self.trainers:
 			if username:
-				if trainer.username=username:
+				if trainer.username==username:
 					return trainer
 			elif discord:
-				if trainer.discord_ID=discord and trainer.prefered=True:
+				if trainer.discord_ID==discord and trainer.prefered is True:
 					return trainer
 			elif account:
-				if trainer.account_ID=account and trainer.prefered=True:
+				if trainer.account_ID==account and trainer.prefered is True:
 					return trainer
 			else:
 				return None
 		
 	async def getTeamByName(self, team):
 		for team in self.teams:
-			return team if team.name.title()=team.title():
+			if team.name.title()==team.title():
+				return team
 		
 	async def profileCard(self, name, force=False):
-		trainerIDs = getTrainerID(username=name)
+		trainerIDs = await self.getTrainerID(username=name)
 		trainer= r.getTrainer(trainerIDs.trainer_ID)
 		team = self.teams[int(trainer.team)]
 		level=r.trainerLevels(xp=trainer.xp)
@@ -70,22 +72,22 @@ class Profiles:
 			embed.set_footer(text="Total XP: "+str(trainer.xp))
 			await self.bot.say(embed=embed)
 	
-	async def addProfile(self, ctx, mention, username, xp, team, start_date=None, has_cheated=None, currently_cheats=None, name=None, prefered=True):
+	async def _addProfile(self, mention, username, xp, team, start_date=None, has_cheated=None, currently_cheats=None, name=None, prefered=True):
 		#Check existance
 		for trainer in r.listTrainers():
-			if trainer.username=username:
+			if trainer.username==username:
 				await self.bot.say("A record already exists in the database for this trainer")
 				await self.profileCard(name=trainer.username, force=True)
 				return
 		#Create or get auth.User
 		#Create or update discord user
 		for item in r.listDiscordUsers():
-			if item.discord_id=mention.id:
+			if item.discord_id==mention.id:
 				discordUser=item
 		if discordUser is None:
 			user = r.addUserAccount(username=username, first_name=name)
 			discordUser = r.addDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=mention.avatar_url, creation=mention.created_at, user=user)
-		elif discordUser.discord_id=mention.id:
+		elif discordUser.discord_id==mention.id:
 			user = discordUser.account_id
 			discordUser = r.putDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=mention.avatar_url)
 		#create or update trainer
@@ -99,16 +101,18 @@ class Profiles:
 	
 	@commands.command(pass_context=True)
 	async def whois(self, ctx, trainer): 
+		"""Trainer lookup"""
 		await self.bot.send_typing(ctx.message.channel)
 		await self.profileCard(trainer)
 
 	@commands.command(pass_context=True, name='updatexp', aliases=['xp'])
-	async def updatexp(self, ctx, xp: int, profile=None): #updatexp - a command used for updating the total experience of a user
+	async def updatexp(self, ctx, xp: int, profile=None): 
+		"""a command used for updating your xp"""
 		await self.bot.send_typing(ctx.message.channel)
 		if profile==None:
-			trainer = getTrainerID(discord=ctx.message.author.id)
+			trainer = self.getTrainerID(discord=ctx.message.author.id)
 		else:
-			trainer = getTrainerID(username=profile)
+			trainer = self.getTrainerID(username=profile)
 			if trainer.discord_ID!=ctx.message.author.id:
 				trainer = None
 				return await self.bot.say("Cannot find an account called {} belonging to <@{}>.".format(profile,ctx.message.author.id))
@@ -118,18 +122,17 @@ class Profiles:
 				return self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
 		update = r.addUpdate(trainer.id, xp)
 		return self.profileCard(trainer.username)
-		elif trainer is None:
-			return
 
 	@commands.group(pass_context=True)
-	async def set(self, ctx):
-		"""Changing information on your profile"""
+	async def tdexset(self, ctx):
+		"""Changing information on your TrainerDex profile"""
 			
-        if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+		if ctx.invoked_subcommand is None:
+			await send_cmd_help(ctx)
 		
-#	@set.command(name="name", pass_context=True)
-#	async def _name_set(self, ctx, *, name: str): #setname - a command used for to set your name on your profile
+#	@tdexset.command(name="name", pass_context=True)
+#	async def _name_set(self, ctx, *, name: str): 
+#		"""a command used for to set your name on your profile"""
 #		await self.bot.send_typing(ctx.message.channel)
 #		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
 #		if t_pogo:
@@ -140,23 +143,22 @@ class Profiles:
 #			await self.bot.say(NOT_IN_SYSTEM)
 #			return
 
-	@set.command(pass_context=True)
-	async def _goal_set(self, ctx, goal: int):
+	@tdexset.command(pass_context=True)
+	async def _goaldaily_tdexset(self, ctx, goal: int): 
+		"""set daily goal - disabled"""
 		await self.bot.say("Goals are currently disabled. Sorry.")
-
-	@set.command(pass_context=True)
-	async def _goaldaily_set(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
-		await self.bot.say("Goals are currently disabled. Sorry. They will return as `.set goal daily/total`")
 	
-	@set.command(pass_context=True)
-	async def _goaltotal_set(self, ctx, goal: int): #setgoal - a command used for to set your daily goal on your profile
-		await self.bot.say("Goals are currently disabled. Sorry. They will return as `.set goal daily/total`")
+	@tdexset.command(pass_context=True)
+	async def _goaltotal_tdexset(self, ctx, goal: int): 
+		"""set total goal - disabled"""
+		await self.bot.say("Goals are currently disabled. Sorry.")
 
 #Mod-commands
 
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
 #	async def spoofer(self, ctx, mention):
+#		"""oh look, a cheater"""
 #		await self.bot.send_typing(ctx.message.channel)
 #		try:
 #			mbr = ctx.message.mentions[0].id
@@ -185,20 +187,22 @@ class Profiles:
 #					trnr.commit()
 #			await self.profileCard(t_pogo, ctx.message.channel)
 
-#	@commands.command(pass_context=True)
-#	@checks.mod_or_permissions(assign_roles=True)
-#	async def newprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
-#		await self.bot.send_typing(ctx.message.channel)
-#		mbr = ctx.message.mentions[0]
-#		if opt.title() == 'Spoofer':
-#			await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1)
-#		else:
-#			await self.addProfile(mbr.id, name, team.title(), level, xp)
-#		await self.profileCard(name, ctx.message.channel)
+	@commands.command(pass_context=True)
+	@checks.mod_or_permissions(assign_roles=True)
+	async def addprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
+		"""adding a user to the database"""
+		await self.bot.send_typing(ctx.message.channel)
+		mbr = ctx.message.mentions[0]
+		if opt.title() == 'Spoofer':
+			await self._addProfile(mbr, name, xp, team.title(), level, xp, has_cheated=True, currently_cheats=True)
+		else:
+			await self._addProfile(mbr, name, xp, team.title(), level, xp)
+		await self.profileCard(name)
 		
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
-#	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #adding a user to the database
+#	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
+#		"""adding a trainer's second profile to the database"""
 #		await self.bot.send_typing(ctx.message.channel)
 #		mbr = ctx.message.mentions[0]
 #		if opt.title() == 'Spoofer':
@@ -209,7 +213,8 @@ class Profiles:
 		
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
-#	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): #applies the correct roles to a user and adds the user to the database
+#	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
+#		"""applies the correct roles to a user and adds the user to the database"""
 #		await self.bot.send_typing(ctx.message.channel)
 #		if not (team.title() in ['Valor','Mystic','Instinct', 'Teamless']):
 #			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(team.title()))
