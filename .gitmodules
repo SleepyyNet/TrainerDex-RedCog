@@ -1,0 +1,3 @@
+[submodule "dependencies/trainerdex"]
+	path = dependencies/trainerdex
+	url = https://github.com/JayTurnr/TrainerDex.py.git
