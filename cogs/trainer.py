@@ -32,36 +32,36 @@ class Profiles:
 	def __init__(self, bot):
 		self.bot = bot
 		self.teams = r.getTeams()
-		self.trainers = r.listTrainers() #Works like a cache
 		
 	async def getTrainerID(self, username=None, discord=None, account=None, prefered=True):
-		for trainer in self.trainers:
+		listTrainers = r.listTrainers()
+		for trainer in listTrainers:
 			if username:
 				if trainer.username==username:
 					return trainer
 			elif discord:
-				if trainer.discord_ID==discord and trainer.prefered is True:
+				if trainer.discord==discord and trainer.prefered is True:
 					return trainer
 			elif account:
-				if trainer.account_ID==account and trainer.prefered is True:
+				if trainer.account==account and trainer.prefered is True:
 					return trainer
 			else:
 				return None
 		
 	async def getTeamByName(self, team):
-		for team in self.teams:
-			if team.name.title()==team.title():
-				return team
+		for item in self.teams:
+			if item.name.title()==team.title():
+				return item
 		
 	async def profileCard(self, name, force=False):
-		trainerIDs = await self.getTrainerID(username=name)
-		trainer= r.getTrainer(trainerIDs.trainer_ID)
+		trainer = await self.getTrainerID(username=name)
+		trainer = r.getTrainer(trainer.id)
 		team = self.teams[int(trainer.team)]
 		level=r.trainerLevels(xp=trainer.xp)
 		if trainer.statistics is False and force is False:
 			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
 		else:
-			embed=discord.Embed(description="**"+trainer.username+"**", timestamp=trainer.xp_time)
+			embed=discord.Embed(description="**"+trainer.username+"**", timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
 			embed.add_field(name='Team', value=team.name)
 			embed.add_field(name='Level', value=level)
 			embed.add_field(name='XP', value=int(trainer.xp) - int(r.trainerLevels(level=level)))
@@ -72,26 +72,33 @@ class Profiles:
 			embed.set_footer(text="Total XP: "+str(trainer.xp))
 			await self.bot.say(embed=embed)
 	
-	async def _addProfile(self, mention, username, xp, team, start_date=None, has_cheated=None, currently_cheats=None, name=None, prefered=True):
+	async def _addProfile(self, mention, username, xp, team, start_date=None, has_cheated=False, currently_cheats=False, name=None, prefered=True):
 		#Check existance
-		for trainer in r.listTrainers():
+		listTrainers = r.listTrainers()
+		for trainer in listTrainers:
 			if trainer.username==username:
 				await self.bot.say("A record already exists in the database for this trainer")
 				await self.profileCard(name=trainer.username, force=True)
 				return
 		#Create or get auth.User
 		#Create or update discord user
-		for item in r.listDiscordUsers():
+		listDiscordUsers = r.listDiscordUsers()
+		discordUser=None
+		if mention.avatar_url=='' or mention.avatar_url is None:
+			avatarUrl = mention.default_avatar_url
+		else:
+			avatarUrl = mention.avatar_url
+		for item in listDiscordUsers:
 			if item.discord_id==mention.id:
 				discordUser=item
 		if discordUser is None:
-			user = r.addUserAccount(username=username, first_name=name)
-			discordUser = r.addDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=mention.avatar_url, creation=mention.created_at, user=user)
+			user = r.addUserAccount(username='_'+username, first_name=name)
+			discordUser = r.addDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=avatarUrl, creation=mention.created_at, user=user)
 		elif discordUser.discord_id==mention.id:
 			user = discordUser.account_id
-			discordUser = r.putDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=mention.avatar_url)
+			discordUser = r.patchDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=avatarUrl, creation=mention.created_at)
 		#create or update trainer
-		trainer = r.addTrainer(username=username, team=self.getTeamByName(team).id, start_date=start_date, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered)
+		trainer = r.addTrainer(username=username, team=team, start_date=start_date, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered)
 		#create update object
 		update = r.addUpdate(trainer, xp)
 		return user, discordUser, trainer, update
@@ -107,21 +114,23 @@ class Profiles:
 
 	@commands.command(pass_context=True, name='updatexp', aliases=['xp'])
 	async def updatexp(self, ctx, xp: int, profile=None): 
-		"""a command used for updating your xp"""
+		"""Update your experience"""
 		await self.bot.send_typing(ctx.message.channel)
 		if profile==None:
-			trainer = self.getTrainerID(discord=ctx.message.author.id)
+			trainer = await self.getTrainerID(discord=ctx.message.author.id)
 		else:
-			trainer = self.getTrainerID(username=profile)
+			trainer = await self.getTrainerID(username=profile)
 			if trainer.discord_ID!=ctx.message.author.id:
 				trainer = None
 				return await self.bot.say("Cannot find an account called {} belonging to <@{}>.".format(profile,ctx.message.author.id))
 		if trainer is not None:
-			trainer = r.getTrainer(trainer)
-			if int(trainer.xp) > int(xp):
-				return self.bot.say("Error: You're trying to set an your XP to a lower value. Please make sure you're using your Total XP at the bottom of your profile.")
+			trainer = r.getTrainer(trainer.id)
+			if int(trainer.xp) >= int(xp):
+				await self.bot.say("Error: You last set your XP to {xp}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.xp))
+				return
+		print(trainer)
 		update = r.addUpdate(trainer.id, xp)
-		return self.profileCard(trainer.username)
+		await self.profileCard(trainer.username)
 
 	@commands.group(pass_context=True)
 	async def tdexset(self, ctx):
@@ -193,23 +202,27 @@ class Profiles:
 		"""adding a user to the database"""
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
+		xp = r.trainerLevels(level=level) + xp
+		team = await self.getTeamByName(team)
 		if opt.title() == 'Spoofer':
-			await self._addProfile(mbr, name, xp, team.title(), level, xp, has_cheated=True, currently_cheats=True)
+			await self._addProfile(mbr, name, xp, team.id, has_cheated=True, currently_cheats=True)
 		else:
-			await self._addProfile(mbr, name, xp, team.title(), level, xp)
+			await self._addProfile(mbr, name, xp, team.id)
 		await self.profileCard(name)
 		
-#	@commands.command(pass_context=True)
-#	@checks.mod_or_permissions(assign_roles=True)
-#	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
-#		"""adding a trainer's second profile to the database"""
-#		await self.bot.send_typing(ctx.message.channel)
-#		mbr = ctx.message.mentions[0]
-#		if opt.title() == 'Spoofer':
-#			await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1, primary=False)
-#		else:
-#			await self.addProfile(mbr.id, name, team.title(), level, xp, primary=False)
-#		await self.profileCard(name, ctx.message.channel)
+	@commands.command(pass_context=True)
+	@checks.mod_or_permissions(assign_roles=True)
+	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
+		"""adding a trainer's second profile to the database"""
+		await self.bot.send_typing(ctx.message.channel)
+		mbr = ctx.message.mentions[0]
+		xp = r.trainerLevels(level=level) + xp
+		team = await self.getTeamByName(team)
+		if opt.title() == 'Spoofer':
+			await self._addProfile(mbr, name, xp, team.id, has_cheated=True, currently_cheats=True, prefered=False)
+		else:
+			await self._addProfile(mbr, name, xp, team.id, prefered=False)
+		await self.profileCard(name)
 		
 #	@commands.command(pass_context=True)
 #	@checks.mod_or_permissions(assign_roles=True)
