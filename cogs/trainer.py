@@ -21,13 +21,12 @@ class Calls:
 	"""Useful tools"""
 	
 	def getName(discord):
-		return Profiles.getTrainerID(discord=discord.id).username if Profiles.getTrainerID(discord=discord.id).username else discord.display_name
+		return TrainerDex.getTrainerID(discord=discord.id).username if TrainerDex.getTrainerID(discord=discord.id).username else discord.display_name
 	
 	def getMember(ussername):
-		return Profiles.getTrainerID(username=username).discord_ID
+		return TrainerDex.getTrainerID(username=username).discord_ID
 
-class Profiles:
-	"""TrainerDex"""
+class TrainerDex:
 	
 	def __init__(self, bot):
 		self.bot = bot
@@ -55,7 +54,10 @@ class Profiles:
 		
 	async def profileCard(self, name, force=False):
 		trainer = await self.getTrainerID(username=name)
-		account = r.getUser(trainer.account)
+		if trainer.account is not None:
+			account = r.getUser(trainer.account)
+		else:
+			account = None
 		discordUser = trainer.discord
 		trainer = r.getTrainer(trainer.id)
 		team = self.teams[int(trainer.team)]
@@ -64,14 +66,15 @@ class Profiles:
 			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
 		else:
 			embed=discord.Embed(description="**"+trainer.username+"**", timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
-			embed.add_field(name='Name', value=account.first_name+' '+account.last_name)
+			if account and (account.first_name or account.last_name):
+				embed.add_field(name='Name', value=account.first_name+' '+account.last_name)
 			embed.add_field(name='Team', value=team.name)
 			embed.add_field(name='Level', value=level)
 			embed.add_field(name='XP', value=int(trainer.xp) - int(r.trainerLevels(level=level)))
 			embed.set_thumbnail(url=team.image)
 			if trainer.cheater is True:
 				embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
-				embed.add_field(name='Comments', value='{} is a known spoofer'.format(t_pogo))
+				embed.add_field(name='Comments', value='{} is a known spoofer'.format(trainer.username))
 			embed.set_footer(text="Total XP: "+str(trainer.xp))
 			await self.bot.say(embed=embed)
 	
@@ -101,7 +104,7 @@ class Profiles:
 			user = discordUser.account_id
 			discordUser = r.patchDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=avatarUrl, creation=mention.created_at)
 		#create or update trainer
-		trainer = r.addTrainer(username=username, team=team, start_date=start_date, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered)
+		trainer = r.addTrainer(username=username, team=team, start_date=start_date, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered, account=user)
 		#create update object
 		update = r.addUpdate(trainer, xp)
 		return user, discordUser, trainer, update
@@ -109,15 +112,22 @@ class Profiles:
 
 #Public Commands
 	
-	@commands.command(pass_context=True)
-	async def whois(self, ctx, trainer): 
+	@commands.command(pass_context=True, name="trainer")
+	async def trainer(self, ctx, trainer): 
 		"""Trainer lookup"""
 		await self.bot.send_typing(ctx.message.channel)
 		await self.profileCard(trainer)
 
-	@commands.command(pass_context=True, name='updatexp', aliases=['xp'])
-	async def updatexp(self, ctx, xp: int, profile=None): 
-		"""Update your experience"""
+	@commands.group(pass_context=True)
+	async def update(self, ctx):
+		"""Update information about your TrainerDex profile"""
+			
+		if ctx.invoked_subcommand is None:
+			await self.bot.send_cmd_help(ctx)
+		
+	@update.command(name="xp", pass_context=True)
+	async def xp(self, ctx, xp: int, profile=None): 
+		"""XP"""
 		await self.bot.send_typing(ctx.message.channel)
 		if profile==None:
 			trainer = await self.getTrainerID(discord=ctx.message.author.id)
@@ -134,17 +144,10 @@ class Profiles:
 		print(trainer)
 		update = r.addUpdate(trainer.id, xp)
 		await self.profileCard(trainer.username)
-
-	@commands.group(pass_context=True)
-	async def tdexset(self, ctx):
-		"""Changing information on your TrainerDex profile"""
-			
-		if ctx.invoked_subcommand is None:
-			await send_cmd_help(ctx)
 		
-	@tdexset.command(name="name", pass_context=True)
-	async def _name_tdexset(self, ctx, *, name: str): 
-		"""a command used for to set your name on your profile"""
+	@update.command(name="name", pass_context=True)
+	async def name(self, ctx, *, name: str): 
+		"""Real Name"""
 		await self.bot.send_typing(ctx.message.channel)
 		account = await self.getTrainerID(discord=ctx.message.author.id)
 		print(account)
@@ -156,14 +159,21 @@ class Profiles:
 			await self.bot.say("Not found!")
 			return
 
-	@tdexset.command(pass_context=True)
-	async def _goaldaily_tdexset(self, ctx, goal: int): 
-		"""set daily goal - disabled"""
+	@update.group(name="goal", pass_context=True)
+	async def goal(self, ctx):
+		"""Update your goals"""
+			
+		if ctx.invoked_subcommand is None:
+			await self.bot.send_cmd_help(ctx)
+		
+	@goal.command(name="daily", pass_context=True)
+	async def daily(self, ctx, goal: int): 
+		"""Daily Goal - Disabled"""
 		await self.bot.say("Goals are currently disabled. Sorry.")
 	
-	@tdexset.command(pass_context=True)
-	async def _goaltotal_tdexset(self, ctx, goal: int): 
-		"""set total goal - disabled"""
+	@goal.command(name="total", pass_context=True)
+	async def total(self, ctx, goal: int): 
+		"""Total Goal - Disabled"""
 		await self.bot.say("Goals are currently disabled. Sorry.")
 
 #Mod-commands
@@ -200,7 +210,7 @@ class Profiles:
 #					trnr.commit()
 #			await self.profileCard(t_pogo, ctx.message.channel)
 
-	@commands.command(pass_context=True)
+	@commands.command(name="addprofile", no_pm=True, pass_context=True, alias="newprofile")
 	@checks.mod_or_permissions(assign_roles=True)
 	async def addprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
 		"""adding a user to the database"""
@@ -214,7 +224,7 @@ class Profiles:
 			await self._addProfile(mbr, name, xp, team.id)
 		await self.profileCard(name)
 		
-	@commands.command(pass_context=True)
+	@commands.command(pass_context=True, no_pm=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
 		"""adding a trainer's second profile to the database"""
@@ -228,40 +238,41 @@ class Profiles:
 			await self._addProfile(mbr, name, xp, team.id, prefered=False)
 		await self.profileCard(name)
 		
-#	@commands.command(pass_context=True)
-#	@checks.mod_or_permissions(assign_roles=True)
-#	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
-#		"""applies the correct roles to a user and adds the user to the database"""
-#		await self.bot.send_typing(ctx.message.channel)
-#		if not (team.title() in ['Valor','Mystic','Instinct', 'Teamless']):
-#			await self.bot.say("{} isn't a valid team. Please ensure that you have used the command correctly.".format(team.title()))
-#			return
-#		mbr = ctx.message.mentions[0]
-#		try:
-#			await self.bot.change_nickname(mbr, name)
-#		except discord.errors.Forbidden:
-#			await self.bot.say("Error: I don't have permission to change nicknames. Aborted!")
-#		else:
-#			if (opt.title() in ['Minor', 'Child']) and discord.utils.get(ctx.message.server.roles, name='Minor'):
-#				approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Minor')
-#			else:
-#				approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Trainer')
-#			team_mentionable = discord.utils.get(ctx.message.server.roles, name=team.title())
-#			try:
-#				await self.bot.add_roles(mbr, approved_mentionable)
-#				if (team.title() in ['Valor','Mystic','Instinct']):
-#					await self.bot.send_typing(ctx.message.channel)
-#					await asyncio.sleep(2.5) #Waits for 2.5 seconds to pass to get around Discord rate limiting
-#					await self.bot.add_roles(mbr, team_mentionable)
-#			except discord.errors.Forbidden:
-#				await self.bot.say("Error: I don't have permission to set roles. Aborted!")
-#			else:
-#				await self.bot.say("{} has been approved, super. They're probably super cool, be nice to them.".format(name))
-#				if opt.title() == 'Spoofer':
-#					await self.addProfile(mbr.id, name, team.title(), level, xp, cheat=1)
-#				else:
-#					await self.addProfile(mbr.id, name, team.title(), level, xp)
-#				await self.profileCard(name, ctx.message.channel)
+	@commands.command(pass_context=True, no_pm=True)
+	@checks.mod_or_permissions(assign_roles=True)
+	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
+		"""applies the correct roles to a user and adds the user to the database"""
+		await self.bot.send_typing(ctx.message.channel)
+		xp = r.trainerLevels(level=level) + xp
+		team = await self.getTeamByName(team)
+		if team is None:
+			await self.bot.say("That isn't a valid team. Please ensure that you have used the command correctly.")
+			return
+		mbr = ctx.message.mentions[0]
+		try:
+			await self.bot.change_nickname(mbr, name)
+		except discord.errors.Forbidden:
+			await self.bot.say("Error: I don't have permission to change nicknames. Aborted!")
+		else:
+			if (opt.title() in ['Minor', 'Child']) and discord.utils.get(ctx.message.server.roles, name='Minor'):
+				approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Minor')
+			else:
+				approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Trainer')
+			team_mentionable = discord.utils.get(ctx.message.server.roles, name=team.name)
+			try:
+				await self.bot.add_roles(mbr, approved_mentionable)
+				if team_mentionable is not None:
+					await asyncio.sleep(2.5) #Waits for 2.5 seconds to pass to get around Discord rate limiting
+					await self.bot.add_roles(mbr, team_mentionable)
+			except discord.errors.Forbidden:
+				await self.bot.say("Error: I don't have permission to set roles. Aborted!")
+			else:
+				await self.bot.say("{} has been approved, super. They're probably super cool, be nice to them.".format(name))
+				if opt.title() == 'Spoofer':
+					await self._addProfile(mbr, name, xp, team.id, has_cheated=True, currently_cheats=True)
+				else:
+					await self._addProfile(mbr, name, xp, team.id)
+				await self.profileCard(name)
 
 	@commands.group(pass_context=True)
 	@checks.is_owner()
@@ -298,6 +309,6 @@ def setup(bot):
 	check_file()
 	importedTrainerDex = True
 	if importedTrainerDex is True:
-		bot.add_cog(Profiles(bot))
+		bot.add_cog(TrainerDex(bot))
 	else:
 		raise RuntimeError('You need to install the TrainerDex.py library.')
