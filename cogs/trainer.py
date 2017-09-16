@@ -55,6 +55,8 @@ class Profiles:
 		
 	async def profileCard(self, name, force=False):
 		trainer = await self.getTrainerID(username=name)
+		account = r.getUser(trainer.account)
+		discordUser = trainer.discord
 		trainer = r.getTrainer(trainer.id)
 		team = self.teams[int(trainer.team)]
 		level=r.trainerLevels(xp=trainer.xp)
@@ -62,6 +64,7 @@ class Profiles:
 			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
 		else:
 			embed=discord.Embed(description="**"+trainer.username+"**", timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
+			embed.add_field(name='Name', value=account.first_name+' '+account.last_name)
 			embed.add_field(name='Team', value=team.name)
 			embed.add_field(name='Level', value=level)
 			embed.add_field(name='XP', value=int(trainer.xp) - int(r.trainerLevels(level=level)))
@@ -139,18 +142,19 @@ class Profiles:
 		if ctx.invoked_subcommand is None:
 			await send_cmd_help(ctx)
 		
-#	@tdexset.command(name="name", pass_context=True)
-#	async def _name_set(self, ctx, *, name: str): 
-#		"""a command used for to set your name on your profile"""
-#		await self.bot.send_typing(ctx.message.channel)
-#		t_pogo, = c.execute('SELECT pogo_name FROM trainers WHERE discord_id=?', (ctx.message.author.id,)).fetchone()
-#		if t_pogo:
-#			c.execute("UPDATE trainers SET real_name=? WHERE discord_id=?", (name, ctx.message.author.id))
-#			trnr.commit()
-#			await self.profileCard(t_pogo, ctx.message.channel)
-#		else:
-#			await self.bot.say(NOT_IN_SYSTEM)
-#			return
+	@tdexset.command(name="name", pass_context=True)
+	async def _name_tdexset(self, ctx, *, name: str): 
+		"""a command used for to set your name on your profile"""
+		await self.bot.send_typing(ctx.message.channel)
+		account = await self.getTrainerID(discord=ctx.message.author.id)
+		print(account)
+		if account:
+			print(account)
+			r.patchUserAccount(account.account, first_name=name)
+			await self.profileCard(account.username)
+		else:
+			await self.bot.say("Not found!")
+			return
 
 	@tdexset.command(pass_context=True)
 	async def _goaldaily_tdexset(self, ctx, goal: int): 
