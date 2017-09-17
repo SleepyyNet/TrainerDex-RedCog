@@ -146,14 +146,17 @@ class TrainerDex:
 		await self.profileCard(trainer.username)
 		
 	@update.command(name="name", pass_context=True)
-	async def name(self, ctx, *, name: str): 
-		"""Real Name"""
+	async def name(self, ctx, first_name, last_name=None): 
+		"""
+		Set your name in form of <first_name> <last_name>
+		If you want to blank your last name set it to two dots '..'
+		"""
 		await self.bot.send_typing(ctx.message.channel)
 		account = await self.getTrainerID(discord=ctx.message.author.id)
-		print(account)
+		if last_name=='..':
+			last_name=' '
 		if account:
-			print(account)
-			r.patchUserAccount(account.account, first_name=name)
+			r.patchUserAccount(account.account, first_name=first_name, last_name=last_name)
 			await self.profileCard(account.username)
 		else:
 			await self.bot.say("Not found!")
