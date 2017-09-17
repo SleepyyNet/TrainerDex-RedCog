@@ -2,7 +2,9 @@ import os
 import asyncio
 import time
 import datetime
+import pytz
 import discord
+from collections import namedtuple
 from discord.ext import commands
 from .utils import checks
 from .utils.dataIO import dataIO
@@ -12,6 +14,15 @@ settings_file = 'data/trainerdex/settings.json'
 json_data = dataIO.load_json(settings_file)
 token = json_data['token']
 r = Requests(token)
+
+Difference = namedtuple('Difference', [
+	'old_date',
+	'old_xp',
+	'new_date',
+	'new_xp',
+	'change_time',
+	'change_xp',
+])
 
 class Calls:
 	"""Useful tools"""
@@ -47,6 +58,53 @@ class TrainerDex:
 		for item in self.teams:
 			if item.name.title()==team.title():
 				return item
+	
+	async def getDiff(self, trainer, days):
+		updates = r.getUpdates(trainer.id)
+		updates.sort(key=lambda x:x.time_updated, reverse=True)
+		latest = updates[0]
+		reference = []
+		for i in updates:
+			if i.time_updated <= (datetime.datetime.now(pytz.utc)-datetime.timedelta(days=days)+datetime.timedelta(hours=3)):
+				reference.append(i)
+		reference = reference[0]
+		diff = Difference(
+				old_date = reference.time_updated,
+				old_xp = reference.total_xp,
+				new_date = latest.time_updated,
+				new_xp = latest.total_xp,
+				change_time = latest.time_updated-reference.time_updated,
+				change_xp = latest.total_xp-reference.total_xp
+			)
+		
+		return diff
+	
+	async def updateCard(self, trainer):
+		team = self.teams[int(trainer.team)]
+		level=r.trainerLevels(xp=trainer.xp)
+		embed=discord.Embed(title=trainer.username, timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
+		embed.add_field(name='Level', value=level)
+		embed.add_field(name='XP', value=int(trainer.xp) - int(r.trainerLevels(level=level)))
+		dailyDiff = await self.getDiff(trainer, 1)
+		gain = '{} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
+		if dailyDiff.change_time.days!=1:
+			gain += 's'
+		embed.add_field(name='Gain', value=gain)
+		if trainer.goal_daily is not None or trainer.goal_daily != 0:
+			dailyGoal = trainer.goal_daily
+			dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
+			embed.add_field(name='Daily completion', value='{}%'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal)))
+		if trainer.goal_total is not None or trainer.goal_toal != 0:
+			totalGoal = trainer.goal_total
+			totalDiff = await self.getDiff(trainer, 7)
+			embed.add_field(name='Goal remaining', value='{:,}'.format(totalGoal-trainer.xp))
+			eta = lambda x, y, z: round(x/(y/z),0)
+			eta = eta(totalGoal-trainer.xp, totalDiff.change_xp, totalDiff.change_time.days)
+			eta = datetime.date.today()+datetime.timedelta(days=eta)
+			embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
+		embed.set_footer(text="Total XP: {:,}".format(trainer.xp))
+		
+		return embed
 		
 	async def profileCard(self, name, force=False):
 		trainer = await self.getTrainerID(username=name)
@@ -61,17 +119,17 @@ class TrainerDex:
 		if trainer.statistics is False and force is False:
 			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
 		else:
-			embed=discord.Embed(description="**"+trainer.username+"**", timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
+			embed=discord.Embed(title=trainer.username, timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
 			if account and (account.first_name or account.last_name):
 				embed.add_field(name='Name', value=account.first_name+' '+account.last_name)
 			embed.add_field(name='Team', value=team.name)
 			embed.add_field(name='Level', value=level)
-			embed.add_field(name='XP', value=int(trainer.xp) - int(r.trainerLevels(level=level)))
-			embed.set_thumbnail(url=team.image)
+			embed.add_field(name='XP', value='{:,}'.format(trainer.xp-r.trainerLevels(level=level)))
+			#embed.set_thumbnail(url=team.image)
 			if trainer.cheater is True:
 				embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
 				embed.add_field(name='Comments', value='{} is a known spoofer'.format(trainer.username))
-			embed.set_footer(text="Total XP: "+str(trainer.xp))
+			embed.set_footer(text="Total XP: {:,}".format(trainer.xp))
 			await self.bot.say(embed=embed)
 	
 	async def _addProfile(self, mention, username, xp, team, start_date=None, has_cheated=False, currently_cheats=False, name=None, prefered=True):
@@ -139,7 +197,8 @@ class TrainerDex:
 				return
 		print(trainer)
 		update = r.addUpdate(trainer.id, xp)
-		await self.profileCard(trainer.username)
+		embed = await self.updateCard(trainer)
+		await self.bot.say(embed=embed)
 		
 	@update.command(name="name", pass_context=True)
 	async def name(self, ctx, first_name, last_name=None): 
