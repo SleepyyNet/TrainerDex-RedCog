@@ -211,22 +211,22 @@ class TrainerDex:
 			await self.bot.say("Not found!")
 			return
 
-	@update.group(name="goal", pass_context=True)
-	async def goal(self, ctx):
+	@update.command(name="goal", pass_context=True)
+	async def goal(self, ctx, which: str, goal: int):
 		"""Update your goals"""
-			
-		if ctx.invoked_subcommand is None:
-			await self.bot.send_cmd_help(ctx)
-		
-	@goal.command(name="daily", pass_context=True)
-	async def daily(self, ctx, goal: int): 
-		"""Daily Goal - Disabled"""
-		await self.bot.say("Goals are currently disabled. Sorry.")
-	
-	@goal.command(name="total", pass_context=True)
-	async def total(self, ctx, goal: int): 
-		"""Total Goal - Disabled"""
-		await self.bot.say("Goals are currently disabled. Sorry.")
+		#trainer = await self.getTrainerID(discord=ctx.message.author.id)
+		#trainer = r.getTrainer(trainer.id)
+		#if which.title()=='Daily':
+		#	r.patchTrainer(trainer.id, daily_goal=goal)
+		#elif which.title()=='Total':
+		#	if goal>trainer.xp:
+		#		r.patchTrainer(trainer.id, total_goal=goal)
+		#		await self.bot.say("Total goal set to {:,}.".format(goal))
+		#	else:
+		#		await self.bot.say("Try something higher than your current XP of {:,}.".format(trainer.xp))
+		#else:
+		#	await self.bot.say("`Please choose 'Daily' or 'Total'.")
+		await self.bot.say("Still not working, sorry! <@319792326958514176> can set your goal via the admin interface though :)")
 
 #Mod-commands
 
