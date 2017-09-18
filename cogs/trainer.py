@@ -90,11 +90,11 @@ class TrainerDex:
 		if dailyDiff.change_time.days!=1:
 			gain += 's'
 		embed.add_field(name='Gain', value=gain)
-		if trainer.goal_daily is not None or trainer.goal_daily != 0:
+		if trainer.goal_daily is not None:
 			dailyGoal = trainer.goal_daily
 			dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
-		if trainer.goal_total is not None or trainer.goal_toal != 0:
 			embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
+		if trainer.goal_total is not None:
 			totalGoal = trainer.goal_total
 			totalDiff = await self.getDiff(trainer, 7)
 			embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-trainer.xp, totalGoal))
@@ -180,25 +180,19 @@ class TrainerDex:
 			await self.bot.send_cmd_help(ctx)
 		
 	@update.command(name="xp", pass_context=True)
-	async def xp(self, ctx, xp: int, profile=None): 
+	async def xp(self, ctx, xp: int): 
 		"""XP"""
 		await self.bot.send_typing(ctx.message.channel)
-		if profile==None:
-			trainer = await self.getTrainerID(discord=ctx.message.author.id)
-		else:
-			trainer = await self.getTrainerID(username=profile)
-			if trainer.discord_ID!=ctx.message.author.id:
-				trainer = None
-				return await self.bot.say("Cannot find an account called {} belonging to <@{}>.".format(profile,ctx.message.author.id))
+		trainer = await self.getTrainerID(discord=ctx.message.author.id)
 		if trainer is not None:
 			trainer = r.getTrainer(trainer.id)
 			if int(trainer.xp) >= int(xp):
 				await self.bot.say("Error: You last set your XP to {xp}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.xp))
 				return
-		print(trainer)
-		update = r.addUpdate(trainer.id, xp)
-		embed = await self.updateCard(trainer)
-		await self.bot.say(embed=embed)
+			update = r.addUpdate(trainer.id, xp)
+			await asyncio.sleep(1)
+			embed = await self.updateCard(trainer)
+			await self.bot.say(embed=embed)
 		
 	@update.command(name="name", pass_context=True)
 	async def name(self, ctx, first_name, last_name=None): 
