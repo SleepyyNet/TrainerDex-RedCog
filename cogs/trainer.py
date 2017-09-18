@@ -84,20 +84,20 @@ class TrainerDex:
 		level=r.trainerLevels(xp=trainer.xp)
 		embed=discord.Embed(title=trainer.username, timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
 		embed.add_field(name='Level', value=level)
-		embed.add_field(name='XP', value=int(trainer.xp) - int(r.trainerLevels(level=level)))
+		embed.add_field(name='XP', value='{:,}'.format(trainer.xp-r.trainerLevels(level=level)))
 		dailyDiff = await self.getDiff(trainer, 1)
-		gain = '{} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
+		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
 		if dailyDiff.change_time.days!=1:
 			gain += 's'
 		embed.add_field(name='Gain', value=gain)
 		if trainer.goal_daily is not None or trainer.goal_daily != 0:
 			dailyGoal = trainer.goal_daily
 			dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
-			embed.add_field(name='Daily completion', value='{}%'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal)))
 		if trainer.goal_total is not None or trainer.goal_toal != 0:
+			embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
 			totalGoal = trainer.goal_total
 			totalDiff = await self.getDiff(trainer, 7)
-			embed.add_field(name='Goal remaining', value='{:,}'.format(totalGoal-trainer.xp))
+			embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-trainer.xp, totalGoal))
 			eta = lambda x, y, z: round(x/(y/z),0)
 			eta = eta(totalGoal-trainer.xp, totalDiff.change_xp, totalDiff.change_time.days)
 			eta = datetime.date.today()+datetime.timedelta(days=eta)
