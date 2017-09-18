@@ -43,7 +43,7 @@ class TrainerDex:
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
 			if username:
-				if trainer.username==username:
+				if trainer.username.lower()==username.lower():
 					return trainer
 			elif discord:
 				if trainer.discord==discord and trainer.prefered is True:
@@ -136,7 +136,7 @@ class TrainerDex:
 		#Check existance
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
-			if trainer.username==username:
+			if trainer.username.lower()==username.lower():
 				await self.bot.say("A record already exists in the database for this trainer")
 				await self.profileCard(name=trainer.username, force=True)
 				return
@@ -211,56 +211,32 @@ class TrainerDex:
 			await self.bot.say("Not found!")
 			return
 
-	@update.group(name="goal", pass_context=True)
-	async def goal(self, ctx):
+	@update.command(name="goal", pass_context=True)
+	async def goal(self, ctx, which: str, goal: int):
 		"""Update your goals"""
-			
-		if ctx.invoked_subcommand is None:
-			await self.bot.send_cmd_help(ctx)
+		await self.bot.send_typing(ctx.message.channel)
+		trainer = await self.getTrainerID(discord=ctx.message.author.id)
+		trainer = r.getTrainer(trainer.id)
+		if which.title()=='Daily':
+			r.patchTrainer(trainer.id, daily_goal=goal)
+			await self.bot.say("Daily goal set to {:,}".format(goal))
+		elif which.title()=='Total':
+			if goal>trainer.xp:
+				r.patchTrainer(trainer.id, total_goal=goal)
+				await self.bot.say("Total goal set to {:,}".format(goal))
+			else:
+				await self.bot.say("Try something higher than your current XP of {:,}.".format(trainer.xp))
+		else:
+			await self.bot.say("`Please choose 'Daily' or 'Total' for after goal.")
 		
-	@goal.command(name="daily", pass_context=True)
-	async def daily(self, ctx, goal: int): 
-		"""Daily Goal - Disabled"""
-		await self.bot.say("Goals are currently disabled. Sorry.")
-	
-	@goal.command(name="total", pass_context=True)
-	async def total(self, ctx, goal: int): 
-		"""Total Goal - Disabled"""
-		await self.bot.say("Goals are currently disabled. Sorry.")
 
 #Mod-commands
 
-#	@commands.command(pass_context=True)
-#	@checks.mod_or_permissions(assign_roles=True)
-#	async def spoofer(self, ctx, mention):
-#		"""oh look, a cheater"""
-#		await self.bot.send_typing(ctx.message.channel)
-#		try:
-#			mbr = ctx.message.mentions[0].id
-#		except:
-#			mbr = None
-#		try:
-#			t_pogo, t_cheat = c.execute('SELECT pogo_name, spoofer FROM trainers WHERE discord_id=? OR pogo_name=?', (mbr,mention)).fetchone()
-#		except:
-#			await self.bot.say("Error!")
-#		else:
-#			if t_cheat==1:
-#				try:
-#					c.execute('UPDATE trainers SET spoofer=? WHERE pogo_name=?', (0, t_pogo))
-#				except sqlite3.IntegrityError:
-#					await self.bot.say("Error!")
-#				else:
-#					await self.bot.say("Success! You've unset the `spoofer` flag on {}!".format(t_pogo))
-#					trnr.commit()
-#			else:
-#				try:
-#					c.execute('UPDATE trainers SET spoofer=?, spoofed=? WHERE pogo_name=?', (1,1, t_pogo))
-#				except sqlite3.IntegrityError:
-#					await self.bot.say("Error!")
-#				else:
-#					await self.bot.say("Success! You've set the `spoofer` flag on {}!".format(t_pogo))
-#					trnr.commit()
-#			await self.profileCard(t_pogo, ctx.message.channel)
+	@commands.command(pass_context=True)
+	@checks.mod_or_permissions(assign_roles=True)
+	async def spoofer(self, ctx):
+		"""oh look, a cheater"""
+		pass
 
 	@commands.command(name="addprofile", no_pm=True, pass_context=True, alias="newprofile")
 	@checks.mod_or_permissions(assign_roles=True)
