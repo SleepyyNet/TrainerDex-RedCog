@@ -43,7 +43,7 @@ class TrainerDex:
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
 			if username:
-				if trainer.username==username:
+				if trainer.username.lower()==username.lower():
 					return trainer
 			elif discord:
 				if trainer.discord==discord and trainer.prefered is True:
@@ -136,7 +136,7 @@ class TrainerDex:
 		#Check existance
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
-			if trainer.username==username:
+			if trainer.username.lower()==username.lower():
 				await self.bot.say("A record already exists in the database for this trainer")
 				await self.profileCard(name=trainer.username, force=True)
 				return
