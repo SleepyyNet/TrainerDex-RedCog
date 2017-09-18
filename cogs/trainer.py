@@ -214,53 +214,29 @@ class TrainerDex:
 	@update.command(name="goal", pass_context=True)
 	async def goal(self, ctx, which: str, goal: int):
 		"""Update your goals"""
-		#trainer = await self.getTrainerID(discord=ctx.message.author.id)
-		#trainer = r.getTrainer(trainer.id)
-		#if which.title()=='Daily':
-		#	r.patchTrainer(trainer.id, daily_goal=goal)
-		#elif which.title()=='Total':
-		#	if goal>trainer.xp:
-		#		r.patchTrainer(trainer.id, total_goal=goal)
-		#		await self.bot.say("Total goal set to {:,}.".format(goal))
-		#	else:
-		#		await self.bot.say("Try something higher than your current XP of {:,}.".format(trainer.xp))
-		#else:
-		#	await self.bot.say("`Please choose 'Daily' or 'Total'.")
-		await self.bot.say("Still not working, sorry! <@319792326958514176> can set your goal via the admin interface though :)")
+		await self.bot.send_typing(ctx.message.channel)
+		trainer = await self.getTrainerID(discord=ctx.message.author.id)
+		trainer = r.getTrainer(trainer.id)
+		if which.title()=='Daily':
+			r.patchTrainer(trainer.id, daily_goal=goal)
+			await self.bot.say("Daily goal set to {:,}".format(goal))
+		elif which.title()=='Total':
+			if goal>trainer.xp:
+				r.patchTrainer(trainer.id, total_goal=goal)
+				await self.bot.say("Total goal set to {:,}".format(goal))
+			else:
+				await self.bot.say("Try something higher than your current XP of {:,}.".format(trainer.xp))
+		else:
+			await self.bot.say("`Please choose 'Daily' or 'Total' for after goal.")
+		
 
 #Mod-commands
 
-#	@commands.command(pass_context=True)
-#	@checks.mod_or_permissions(assign_roles=True)
-#	async def spoofer(self, ctx, mention):
-#		"""oh look, a cheater"""
-#		await self.bot.send_typing(ctx.message.channel)
-#		try:
-#			mbr = ctx.message.mentions[0].id
-#		except:
-#			mbr = None
-#		try:
-#			t_pogo, t_cheat = c.execute('SELECT pogo_name, spoofer FROM trainers WHERE discord_id=? OR pogo_name=?', (mbr,mention)).fetchone()
-#		except:
-#			await self.bot.say("Error!")
-#		else:
-#			if t_cheat==1:
-#				try:
-#					c.execute('UPDATE trainers SET spoofer=? WHERE pogo_name=?', (0, t_pogo))
-#				except sqlite3.IntegrityError:
-#					await self.bot.say("Error!")
-#				else:
-#					await self.bot.say("Success! You've unset the `spoofer` flag on {}!".format(t_pogo))
-#					trnr.commit()
-#			else:
-#				try:
-#					c.execute('UPDATE trainers SET spoofer=?, spoofed=? WHERE pogo_name=?', (1,1, t_pogo))
-#				except sqlite3.IntegrityError:
-#					await self.bot.say("Error!")
-#				else:
-#					await self.bot.say("Success! You've set the `spoofer` flag on {}!".format(t_pogo))
-#					trnr.commit()
-#			await self.profileCard(t_pogo, ctx.message.channel)
+	@commands.command(pass_context=True)
+	@checks.mod_or_permissions(assign_roles=True)
+	async def spoofer(self, ctx):
+		"""oh look, a cheater"""
+		pass
 
 	@commands.command(name="addprofile", no_pm=True, pass_context=True, alias="newprofile")
 	@checks.mod_or_permissions(assign_roles=True)
