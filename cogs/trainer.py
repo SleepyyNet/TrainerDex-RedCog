@@ -64,7 +64,7 @@ class trainerdex:
 				old_xp = reference.total_xp,
 				new_date = latest.time_updated,
 				new_xp = latest.total_xp,
-				change_time = latest.time_updated-reference.time_updated,
+				change_time = latest.time_updated-reference.time_updated+datetime.timedelta(hours=3),
 				change_xp = latest.total_xp-reference.total_xp
 			)
 		
