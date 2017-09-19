@@ -24,16 +24,7 @@ Difference = namedtuple('Difference', [
 	'change_xp',
 ])
 
-class Calls:
-	"""Useful tools"""
-	
-	def getName(discord):
-		return TrainerDex.getTrainerID(discord=discord.id).username if TrainerDex.getTrainerID(discord=discord.id).username else discord.display_name
-	
-	def getMember(ussername):
-		return TrainerDex.getTrainerID(username=username).discord_ID
-
-class TrainerDex:
+class trainerdex:
 	
 	def __init__(self, bot):
 		self.bot = bot
@@ -336,4 +327,4 @@ def setup(bot):
 	check_folders()
 	check_file()
 	importedTrainerDex = True
-	bot.add_cog(TrainerDex(bot))
+	bot.add_cog(trainerdex(bot))
