@@ -80,12 +80,13 @@ class trainerdex:
 		embed.add_field(name='XP', value='{:,}ₓₚ'.format(dailyDiff.new_xp-r.trainerLevels(level=level)))
 		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
 		if dailyDiff.change_time.days!=1:
-			gain += 's'
+			gain += 's.'
+			gain += "That's {:,} xp/day.".format(dailyDiff.change_xp/dailyDiff.change_time.days)
 		embed.add_field(name='Gain', value=gain)
 		if trainer.goal_daily is not None:
 			dailyGoal = trainer.goal_daily
 			dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
-			embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
+			embed.add_field(name='Daily completion', value='{}% of {:,} xp'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
 		if trainer.goal_total is not None:
 			totalGoal = trainer.goal_total
 			totalDiff = await self.getDiff(trainer, 7)
