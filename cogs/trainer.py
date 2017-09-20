@@ -125,7 +125,7 @@ class trainerdex:
 			embed.set_footer(text="Total XP: {:,}".format(trainer.xp))
 			await self.bot.say(embed=embed)
 	
-	async def _addProfile(self, mention, username, xp, team, start_date=None, has_cheated=False, currently_cheats=False, name=None, prefered=True):
+	async def _addProfile(self, mention, username, xp, team, has_cheated=False, currently_cheats=False, name=None, prefered=True):
 		#Check existance
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
@@ -151,7 +151,7 @@ class trainerdex:
 			user = discordUser.account_id
 			discordUser = r.patchDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=avatarUrl, creation=mention.created_at)
 		#create or update trainer
-		trainer = r.addTrainer(username=username, team=team, start_date=start_date, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered, account=user)
+		trainer = r.addTrainer(username=username, team=team, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered, account=user)
 		#create update object
 		update = r.addUpdate(trainer, xp)
 		return user, discordUser, trainer, update
