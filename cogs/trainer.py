@@ -5,6 +5,7 @@ import time
 import datetime
 import pytz
 import discord
+import random
 from collections import namedtuple
 from discord.ext import commands
 from .utils import checks
@@ -24,6 +25,8 @@ Difference = namedtuple('Difference', [
 	'change_time',
 	'change_xp',
 ])
+
+levelup = ["You reached your goal, well done. Now if only applied that much effort at buying {admin} pizza, I might be happy!", "Well done on reaching {goal:,}", "much xp, very goal", "Great, you got to {goal:,} XP, now what?"]
 
 class trainerdex:
 	
@@ -75,26 +78,28 @@ class trainerdex:
 		team = self.teams[int(trainer.team)]
 		dailyDiff = await self.getDiff(trainer, 1)
 		level=r.trainerLevels(xp=dailyDiff.new_xp)
-		embed=discord.Embed(title=trainer.username, timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
+		embed=discord.Embed(title=trainer.username, timestamp=dailyDiff.new_date, colour=int(team.colour.replace("#", ""), 16))
 		embed.add_field(name='Level', value=level)
-		embed.add_field(name='XP', value='{:,}ₓₚ'.format(dailyDiff.new_xp-r.trainerLevels(level=level)))
+		embed.add_field(name='XP', value='{:,}'.format(dailyDiff.new_xp-r.trainerLevels(level=level)))
 		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
 		if dailyDiff.change_time.days!=1:
 			gain += 's.'
 			gain += "That's {:,} xp/day.".format(dailyDiff.change_xp/dailyDiff.change_time.days)
 		embed.add_field(name='Gain', value=gain)
 		if trainer.goal_daily is not None:
-			dailyGoal = trainer.goal_daily
-			dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
-			embed.add_field(name='Daily completion', value='{}% of {:,} xp'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
+			if trainer.goal_daily != 0:
+				dailyGoal = trainer.goal_daily
+				dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
+				embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
 		if trainer.goal_total is not None:
-			totalGoal = trainer.goal_total
-			totalDiff = await self.getDiff(trainer, 7)
-			embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-trainer.xp, totalGoal))
-			eta = lambda x, y, z: round(x/(y/z),0)
-			eta = eta(totalGoal-trainer.xp, totalDiff.change_xp, totalDiff.change_time.days)
-			eta = datetime.date.today()+datetime.timedelta(days=eta)
-			embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
+			if trainer.goal_total != 0:
+				totalGoal = trainer.goal_total
+				totalDiff = await self.getDiff(trainer, 7)
+				embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-dailyDiff.new_xp, totalGoal))
+				eta = lambda x, y, z: round(x/(y/z),0)
+				eta = eta(totalGoal-dailyDiff.new_xp, totalDiff.change_xp, totalDiff.change_time.days)
+				eta = datetime.date.today()+datetime.timedelta(days=eta)
+				embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
 		embed.set_footer(text="Total XP: {:,}".format(dailyDiff.new_xp))
 		
 		return embed
@@ -180,8 +185,12 @@ class trainerdex:
 		if trainer is not None:
 			trainer = r.getTrainer(trainer.id)
 			if int(trainer.xp) >= int(xp):
-				await self.bot.say("Error: You last set your XP to {xp}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.xp))
+				await self.bot.say("Error: You last set your XP to {xp:,}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.xp))
 				return
+			if trainer.goal_total:
+				if trainer.goal_total<=xp and trainer.goal_total != 0:
+					await self.bot.say(random.choice(levelup).format(goal=trainer.goal_total, admin=random.choice(list(ctx.message.server.members)).mention))
+					r.patchTrainer(trainer.id, total_goal=0)
 			update = r.addUpdate(trainer.id, xp)
 			await asyncio.sleep(1)
 			embed = await self.updateCard(trainer)
