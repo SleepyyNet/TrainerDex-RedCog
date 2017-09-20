@@ -1,9 +1,11 @@
+﻿# coding=utf-8
 import os
 import asyncio
 import time
 import datetime
 import pytz
 import discord
+import random
 from collections import namedtuple
 from discord.ext import commands
 from .utils import checks
@@ -23,6 +25,8 @@ Difference = namedtuple('Difference', [
 	'change_time',
 	'change_xp',
 ])
+
+levelup = ["You reached your goal, well done. Now if only applied that much effort at buying {admin} pizza, I might be happy!", "Well done on reaching {goal:,}", "much xp, very goal", "Great, you got to {goal:,} XP, now what?"]
 
 class trainerdex:
 	
@@ -72,28 +76,31 @@ class trainerdex:
 	
 	async def updateCard(self, trainer):
 		team = self.teams[int(trainer.team)]
-		level=r.trainerLevels(xp=trainer.xp)
-		embed=discord.Embed(title=trainer.username, timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
-		embed.add_field(name='Level', value=level)
-		embed.add_field(name='XP', value='{:,}'.format(trainer.xp-r.trainerLevels(level=level)))
 		dailyDiff = await self.getDiff(trainer, 1)
+		level=r.trainerLevels(xp=dailyDiff.new_xp)
+		embed=discord.Embed(title=trainer.username, timestamp=dailyDiff.new_date, colour=int(team.colour.replace("#", ""), 16))
+		embed.add_field(name='Level', value=level)
+		embed.add_field(name='XP', value='{:,}'.format(dailyDiff.new_xp-r.trainerLevels(level=level)))
 		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
 		if dailyDiff.change_time.days!=1:
-			gain += 's'
+			gain += 's.'
+			gain += "That's {:,} xp/day.".format(dailyDiff.change_xp/dailyDiff.change_time.days)
 		embed.add_field(name='Gain', value=gain)
 		if trainer.goal_daily is not None:
-			dailyGoal = trainer.goal_daily
-			dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
-			embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
+			if trainer.goal_daily != 0:
+				dailyGoal = trainer.goal_daily
+				dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
+				embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
 		if trainer.goal_total is not None:
-			totalGoal = trainer.goal_total
-			totalDiff = await self.getDiff(trainer, 7)
-			embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-trainer.xp, totalGoal))
-			eta = lambda x, y, z: round(x/(y/z),0)
-			eta = eta(totalGoal-trainer.xp, totalDiff.change_xp, totalDiff.change_time.days)
-			eta = datetime.date.today()+datetime.timedelta(days=eta)
-			embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
-		embed.set_footer(text="Total XP: {:,}".format(trainer.xp))
+			if trainer.goal_total != 0:
+				totalGoal = trainer.goal_total
+				totalDiff = await self.getDiff(trainer, 7)
+				embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-dailyDiff.new_xp, totalGoal))
+				eta = lambda x, y, z: round(x/(y/z),0)
+				eta = eta(totalGoal-dailyDiff.new_xp, totalDiff.change_xp, totalDiff.change_time.days)
+				eta = datetime.date.today()+datetime.timedelta(days=eta)
+				embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
+		embed.set_footer(text="Total XP: {:,}".format(dailyDiff.new_xp))
 		
 		return embed
 		
@@ -123,7 +130,7 @@ class trainerdex:
 			embed.set_footer(text="Total XP: {:,}".format(trainer.xp))
 			await self.bot.say(embed=embed)
 	
-	async def _addProfile(self, mention, username, xp, team, start_date=None, has_cheated=False, currently_cheats=False, name=None, prefered=True):
+	async def _addProfile(self, mention, username, xp, team, has_cheated=False, currently_cheats=False, name=None, prefered=True):
 		#Check existance
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
@@ -149,7 +156,7 @@ class trainerdex:
 			user = discordUser.account_id
 			discordUser = r.patchDiscordUser(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=avatarUrl, creation=mention.created_at)
 		#create or update trainer
-		trainer = r.addTrainer(username=username, team=team, start_date=start_date, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered, account=user)
+		trainer = r.addTrainer(username=username, team=team, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered, account=user)
 		#create update object
 		update = r.addUpdate(trainer, xp)
 		return user, discordUser, trainer, update
@@ -178,8 +185,12 @@ class trainerdex:
 		if trainer is not None:
 			trainer = r.getTrainer(trainer.id)
 			if int(trainer.xp) >= int(xp):
-				await self.bot.say("Error: You last set your XP to {xp}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.xp))
+				await self.bot.say("Error: You last set your XP to {xp:,}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.xp))
 				return
+			if trainer.goal_total:
+				if trainer.goal_total<=xp and trainer.goal_total != 0:
+					await self.bot.say(random.choice(levelup).format(goal=trainer.goal_total, admin=random.choice(list(ctx.message.server.members)).mention))
+					r.patchTrainer(trainer.id, total_goal=0)
 			update = r.addUpdate(trainer.id, xp)
 			await asyncio.sleep(1)
 			embed = await self.updateCard(trainer)
