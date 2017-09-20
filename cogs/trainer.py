@@ -1,3 +1,4 @@
+﻿# coding=utf-8
 import os
 import asyncio
 import time
@@ -72,11 +73,11 @@ class trainerdex:
 	
 	async def updateCard(self, trainer):
 		team = self.teams[int(trainer.team)]
-		level=r.trainerLevels(xp=trainer.xp)
+		dailyDiff = await self.getDiff(trainer, 1)
+		level=r.trainerLevels(xp=dailyDiff.new_xp)
 		embed=discord.Embed(title=trainer.username, timestamp=trainer.xp_time, colour=int(team.colour.replace("#", ""), 16))
 		embed.add_field(name='Level', value=level)
-		embed.add_field(name='XP', value='{:,}'.format(trainer.xp-r.trainerLevels(level=level)))
-		dailyDiff = await self.getDiff(trainer, 1)
+		embed.add_field(name='XP', value='{:,}ₓₚ'.format(dailyDiff.new_xp-r.trainerLevels(level=level)))
 		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
 		if dailyDiff.change_time.days!=1:
 			gain += 's'
@@ -93,7 +94,7 @@ class trainerdex:
 			eta = eta(totalGoal-trainer.xp, totalDiff.change_xp, totalDiff.change_time.days)
 			eta = datetime.date.today()+datetime.timedelta(days=eta)
 			embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
-		embed.set_footer(text="Total XP: {:,}".format(trainer.xp))
+		embed.set_footer(text="Total XP: {:,}".format(dailyDiff.new_xp))
 		
 		return embed
 		
