@@ -10,7 +10,8 @@
         "requests",
         "datetime",
         "asyncio",
-        "time"
+        "time",
+        "random"
     ],
     "SHORT" : "A trainer profile system for Pokemon Go servers",
     "TAGS" : [
