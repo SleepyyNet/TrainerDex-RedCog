@@ -26,7 +26,7 @@ Difference = namedtuple('Difference', [
 	'change_xp',
 ])
 
-levelup = ["You reached your goal, well done. Now if only applied that much effort at buying {admin} pizza, I might be happy!", "Well done on reaching {goal:,}", "much xp, very goal", "Great, you got to {goal:,} XP, now what?"]
+levelup = ["You reached your goal, well done. Now if only applied that much effort at buying {member} pizza, I might be happy!", "Well done on reaching {goal:,}", "much xp, very goal", "Great, you got to {goal:,} XP, now what?"]
 
 class trainerdex:
 	
@@ -83,7 +83,7 @@ class trainerdex:
 		embed.add_field(name='XP', value='{:,}'.format(dailyDiff.new_xp-r.trainerLevels(level=level)))
 		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
 		if dailyDiff.change_time.days!=1:
-			gain += 's.'
+			gain += 's. '
 			gain += "That's {:,} xp/day.".format(dailyDiff.change_xp/dailyDiff.change_time.days)
 		embed.add_field(name='Gain', value=gain)
 		if trainer.goal_daily is not None:
@@ -189,7 +189,7 @@ class trainerdex:
 				return
 			if trainer.goal_total:
 				if trainer.goal_total<=xp and trainer.goal_total != 0:
-					await self.bot.say(random.choice(levelup).format(goal=trainer.goal_total, admin=random.choice(list(ctx.message.server.members)).mention))
+					await self.bot.say(random.choice(levelup).format(goal=trainer.goal_total, member=random.choice(list(ctx.message.server.members)).mention))
 					r.patchTrainer(trainer.id, total_goal=0)
 			update = r.addUpdate(trainer.id, xp)
 			await asyncio.sleep(1)
