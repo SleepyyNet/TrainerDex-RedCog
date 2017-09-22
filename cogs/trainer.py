@@ -84,7 +84,7 @@ class trainerdex:
 		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
 		if dailyDiff.change_time.days!=1:
 			gain += 's. '
-			gain += "That's {:,} xp/day.".format(dailyDiff.change_xp/dailyDiff.change_time.days)
+			gain += "That's {:,} xp/day.".format(round(dailyDiff.change_xp/dailyDiff.change_time.days))
 		embed.add_field(name='Gain', value=gain)
 		if trainer.goal_daily is not None:
 			if trainer.goal_daily != 0:
