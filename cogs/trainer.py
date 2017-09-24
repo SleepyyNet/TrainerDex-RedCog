@@ -34,7 +34,7 @@ class trainerdex:
 		self.bot = bot
 		self.teams = r.getTeams()
 		
-	async def getTrainerID(self, username=None, discord=None, account=None, prefered=True):
+	async def getTrainerID(self, username: str=None, discord: int=None, account: int=None, prefered=True):
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
 			if username:
@@ -49,12 +49,12 @@ class trainerdex:
 			else:
 				return None
 		
-	async def getTeamByName(self, team):
+	async def getTeamByName(self, team: srr):
 		for item in self.teams:
 			if item.name.title()==team.title():
 				return item
 	
-	async def getDiff(self, trainer, days):
+	async def getDiff(self, trainer, days: int):
 		updates = r.getUpdates(trainer.id)
 		updates.sort(key=lambda x:x.time_updated, reverse=True)
 		latest = updates[0]
@@ -104,7 +104,7 @@ class trainerdex:
 		
 		return embed
 		
-	async def profileCard(self, name, force=False):
+	async def profileCard(self, name: str, force=False):
 		trainer = await self.getTrainerID(username=name)
 		if trainer.account is not None:
 			account = r.getUser(trainer.account)
@@ -130,7 +130,7 @@ class trainerdex:
 			embed.set_footer(text="Total XP: {:,}".format(trainer.xp))
 			await self.bot.say(embed=embed)
 	
-	async def _addProfile(self, mention, username, xp, team, has_cheated=False, currently_cheats=False, name=None, prefered=True):
+	async def _addProfile(self, mention, username: str, xp: int, team: int, has_cheated=False, currently_cheats=False, name: str=None, prefered=True):
 		#Check existance
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
@@ -165,7 +165,7 @@ class trainerdex:
 #Public Commands
 	
 	@commands.command(pass_context=True, name="trainer")
-	async def trainer(self, ctx, trainer): 
+	async def trainer(self, ctx, trainer: str): 
 		"""Trainer lookup"""
 		await self.bot.send_typing(ctx.message.channel)
 		await self.profileCard(trainer)
@@ -197,7 +197,7 @@ class trainerdex:
 			await self.bot.say(embed=embed)
 		
 	@update.command(name="name", pass_context=True)
-	async def name(self, ctx, first_name, last_name=None): 
+	async def name(self, ctx, first_name: str, last_name: str=None): 
 		"""
 		Set your name in form of <first_name> <last_name>
 		If you want to blank your last name set it to two dots '..'
