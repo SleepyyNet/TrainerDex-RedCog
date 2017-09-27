@@ -49,7 +49,7 @@ class trainerdex:
 			else:
 				return None
 		
-	async def getTeamByName(self, team: srr):
+	async def getTeamByName(self, team: str):
 		for item in self.teams:
 			if item.name.title()==team.title():
 				return item
