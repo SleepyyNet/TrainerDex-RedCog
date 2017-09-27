@@ -58,11 +58,27 @@ class trainerdex:
 		updates = r.getUpdates(trainer.id)
 		updates.sort(key=lambda x:x.time_updated, reverse=True)
 		latest = updates[0]
+		first = updates[-1]
 		reference = []
 		for i in updates:
 			if i.time_updated <= (datetime.datetime.now(pytz.utc)-datetime.timedelta(days=days)+datetime.timedelta(hours=3)):
 				reference.append(i)
-		reference = reference[0]
+		if reference==[]:
+			if latest==first:
+				diff = Difference(
+					old_date = None,
+					old_xp = None,
+					new_date = latest.time_updated,
+					new_xp = latest.total_xp,
+					change_time = None,
+					change_xp = None
+				)
+				return diff
+			elif first.time_updated > (datetime.datetime.now(pytz.utc)-datetime.timedelta(days=days)+datetime.timedelta(hours=3)):
+				reference=first
+		else:
+			reference = reference[0]
+		print(reference)
 		diff = Difference(
 				old_date = reference.time_updated,
 				old_xp = reference.total_xp,
@@ -81,23 +97,24 @@ class trainerdex:
 		embed=discord.Embed(title=trainer.username, timestamp=dailyDiff.new_date, colour=int(team.colour.replace("#", ""), 16))
 		embed.add_field(name='Level', value=level)
 		embed.add_field(name='XP', value='{:,}'.format(dailyDiff.new_xp-r.trainerLevels(level=level)))
-		gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
-		if dailyDiff.change_time.days!=1:
-			gain += 's. '
-			gain += "That's {:,} xp/day.".format(round(dailyDiff.change_xp/dailyDiff.change_time.days))
-		embed.add_field(name='Gain', value=gain)
-		if trainer.goal_daily is not None:
-			if trainer.goal_daily != 0:
+		if dailyDiff.change_xp and dailyDiff.change_time:
+			gain = '{:,} over {} day'.format(dailyDiff.change_xp, dailyDiff.change_time.days)
+			if dailyDiff.change_time.days!=1:
+				gain += 's. '
+			if dailyDiff.change_time.days>1:
+				gain += "That's {:,} xp/day.".format(dailyDiff.change_xp/dailyDiff.change_time.days)
+			embed.add_field(name='Gain', value=gain)
+			if (trainer.goal_daily!=None) and (dailyDiff.change_time.days>0):
 				dailyGoal = trainer.goal_daily
 				dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
 				embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
-		if trainer.goal_total is not None:
-			if trainer.goal_total != 0:
-				totalGoal = trainer.goal_total
-				totalDiff = await self.getDiff(trainer, 7)
-				embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-dailyDiff.new_xp, totalGoal))
+		if (trainer.goal_total!=None):
+			totalGoal = trainer.goal_total
+			totalDiff = await self.getDiff(trainer, 7)
+			embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-totalDiff.new_xp, totalGoal))
+			if totalDiff.change_time.days>0:
 				eta = lambda x, y, z: round(x/(y/z),0)
-				eta = eta(totalGoal-dailyDiff.new_xp, totalDiff.change_xp, totalDiff.change_time.days)
+				eta = eta(totalGoal-totalDiff.new_xp, totalDiff.change_xp, totalDiff.change_time.days)
 				eta = datetime.date.today()+datetime.timedelta(days=eta)
 				embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
 		embed.set_footer(text="Total XP: {:,}".format(dailyDiff.new_xp))
