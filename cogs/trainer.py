@@ -34,7 +34,7 @@ class trainerdex:
 		self.bot = bot
 		self.teams = r.getTeams()
 		
-	async def getTrainerID(self, username: str=None, discord: int=None, account: int=None, prefered=True):
+	async def getTrainerID(self, username=None, discord=None, account=None, prefered=True):
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
 			if username:
