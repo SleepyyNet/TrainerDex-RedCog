@@ -35,6 +35,8 @@ class trainerdex:
 		self.teams = r.getTeams()
 		
 	async def getTrainerID(self, username=None, discord=None, account=None, prefered=True):
+		"""Returns a Trainer object for a given discord, trainer username or account id"""
+		
 		listTrainers = r.listTrainers()
 		for trainer in listTrainers:
 			if username:
@@ -183,7 +185,11 @@ class trainerdex:
 	
 	@commands.command(pass_context=True, name="trainer")
 	async def trainer(self, ctx, trainer: str): 
-		"""Trainer lookup"""
+		"""Look up a Pokemon Go Trainer
+		
+		Usage: trainer <username>
+		"""
+		
 		await self.bot.send_typing(ctx.message.channel)
 		await self.profileCard(trainer)
 
@@ -196,7 +202,11 @@ class trainerdex:
 		
 	@update.command(name="xp", pass_context=True)
 	async def xp(self, ctx, xp: int): 
-		"""XP"""
+		"""Update your xp
+		
+		Usage: update xp <number>
+		"""
+		
 		await self.bot.send_typing(ctx.message.channel)
 		trainer = await self.getTrainerID(discord=ctx.message.author.id)
 		if trainer is not None:
@@ -215,10 +225,16 @@ class trainerdex:
 		
 	@update.command(name="name", pass_context=True)
 	async def name(self, ctx, first_name: str, last_name: str=None): 
-		"""
+		"""Update your name on your profile - entirely optional
+		
 		Set your name in form of <first_name> <last_name>
 		If you want to blank your last name set it to two dots '..'
+		
+		Usage: update xp Bob ..
+		or
+		Usage: update xp Jay Turner
 		"""
+		
 		await self.bot.send_typing(ctx.message.channel)
 		account = await self.getTrainerID(discord=ctx.message.author.id)
 		if last_name=='..':
@@ -232,7 +248,11 @@ class trainerdex:
 
 	@update.command(name="goal", pass_context=True)
 	async def goal(self, ctx, which: str, goal: int):
-		"""Update your goals"""
+		"""Update your goals
+		
+		Usage: update goal <daily/update> <number>
+		"""
+		
 		await self.bot.send_typing(ctx.message.channel)
 		trainer = await self.getTrainerID(discord=ctx.message.author.id)
 		trainer = r.getTrainer(trainer.id)
@@ -254,13 +274,22 @@ class trainerdex:
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def spoofer(self, ctx):
-		"""oh look, a cheater"""
+		"""Set a user as a spoofer. WIP."""
+		
 		pass
 
 	@commands.command(name="addprofile", no_pm=True, pass_context=True, alias="newprofile")
 	@checks.mod_or_permissions(assign_roles=True)
 	async def addprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
-		"""adding a user to the database"""
+		"""Add a user to the Trainer Dex database
+		
+		Optional arguments: spoofer - sets the user as a spoofer (db only)
+		
+		Usage: addprofile <the tagged mention of a discord user> <pokemon username> <team> <level> <xp through level> <optional tag words suppoted: spoofer>
+		
+		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
+		"""
+		
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
 		xp = r.trainerLevels(level=level) + xp
@@ -274,7 +303,15 @@ class trainerdex:
 	@commands.command(pass_context=True, no_pm=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
-		"""adding a trainer's second profile to the database"""
+		"""Add a user to the Trainer Dex database as a secondary profile
+		
+		Optional arguments: spoofer - sets the user as a spoofer (db only)
+		
+		Usage: addprofile <the tagged mention of a discord user> <pokemon username> <team> <level> <xp through level> <optional tag words suppoted: spoofer>
+		
+		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
+		"""
+		
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
 		xp = r.trainerLevels(level=level) + xp
@@ -288,7 +325,18 @@ class trainerdex:
 	@commands.command(pass_context=True, no_pm=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
-		"""applies the correct roles to a user and adds the user to the database"""
+		"""Add a user to the Trainer Dex database and set the correct role on Discord
+		
+		Based on the ekpogo.uk standard network - options coming soon.
+		
+		Optional arguments: spoofer - sets the user as a spoofer (db only)
+							minor/child - sets the 'Minor' role instead of the 'Trainer' role (discord only)
+		
+		Usage: approve <the tagged mention of a discord user> <pokemon username> <team> <level> <xp through level> <max one tag, optional tag words suppoted: spoofer, minor/child>
+		
+		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
+		"""
+		
 		await self.bot.send_typing(ctx.message.channel)
 		xp = r.trainerLevels(level=level) + xp
 		team = await self.getTeamByName(team)
@@ -325,6 +373,7 @@ class trainerdex:
 	@checks.is_owner()
 	async def tdset(self, ctx):
 		"""Settings for TrainerDex cog"""
+		
 		if ctx.invoked_subcommand is None:
 			await self.bot.send_cmd_help(ctx)
 
@@ -332,6 +381,7 @@ class trainerdex:
 	@checks.is_owner()
 	async def api(self, ctx, token: str):
 		"""Sets the TrainerDex API token - owner only"""
+		
 		settings = dataIO.load_json(settings_file)
 		if token:
 			settings['token'] = token
