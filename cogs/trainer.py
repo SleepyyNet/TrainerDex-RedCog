@@ -104,7 +104,7 @@ class trainerdex:
 			if dailyDiff.change_time.days!=1:
 				gain += 's. '
 			if dailyDiff.change_time.days>1:
-				gain += "That's {:,} xp/day.".format(dailyDiff.change_xp/dailyDiff.change_time.days)
+				gain += "That's {:,} xp/day.".format(round(dailyDiff.change_xp/dailyDiff.change_time.days))
 			embed.add_field(name='Gain', value=gain)
 			if (trainer.goal_daily!=None) and (dailyDiff.change_time.days>0):
 				dailyGoal = trainer.goal_daily
@@ -115,7 +115,7 @@ class trainerdex:
 			totalDiff = await self.getDiff(trainer, 7)
 			embed.add_field(name='Goal remaining', value='{:,} of {:,}'.format(totalGoal-totalDiff.new_xp, totalGoal))
 			if totalDiff.change_time.days>0:
-				eta = lambda x, y, z: round(x/(y/z),0)
+				eta = lambda x, y, z: round(x/(y/z))
 				eta = eta(totalGoal-totalDiff.new_xp, totalDiff.change_xp, totalDiff.change_time.days)
 				eta = datetime.date.today()+datetime.timedelta(days=eta)
 				embed.add_field(name='ETA', value=eta.strftime("%A %d %B %Y"))
