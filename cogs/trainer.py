@@ -267,7 +267,18 @@ class trainerdex:
 				await self.bot.say("Try something higher than your current XP of {:,}.".format(trainer.xp))
 		else:
 			await self.bot.say("`Please choose 'Daily' or 'Total' for after goal.")
-		
+	
+	@commands.command(pass_context=True)
+	async def leaderboard(self, ctx, entries=9):
+		Message = await self.bot.say("Thinking...")
+		await self.bot.send_typing(ctx.message.channel)
+		updates = r.listTrainers()
+		updates.sort(key=lambda x:x.xp, reverse=True)
+		filter1 = list(filter(lambda x: ctx.message.server.get_member(x.discord), updates))
+		embed=discord.Embed(title="Leaderboard")
+		for i in range(min(entries, 25, len(filter1))):
+			embed.add_field(name='{}. {}'.format(i+1, filter1[i].username), value="{:,}".format(filter1[i].xp))
+		await self.bot.edit_message(Message, new_content=str(datetime.date.today()), embed=embed)
 
 #Mod-commands
 
