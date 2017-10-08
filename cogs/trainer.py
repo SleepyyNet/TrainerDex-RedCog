@@ -6,6 +6,7 @@ import datetime
 import pytz
 import discord
 import random
+import pycent
 from collections import namedtuple
 from discord.ext import commands
 from .utils import checks
@@ -108,8 +109,7 @@ class trainerdex:
 			embed.add_field(name='Gain', value=gain)
 			if (trainer.goal_daily!=None) and (dailyDiff.change_time.days>0):
 				dailyGoal = trainer.goal_daily
-				dailyCent = lambda x, y, z: round(((x/y)/z)*100,2)
-				embed.add_field(name='Daily completion', value='{}% of {:,}'.format(dailyCent(dailyDiff.change_xp, dailyDiff.change_time.days, dailyGoal), dailyGoal))
+				embed.add_field(name='Daily completion', value='{}% of {:,}'.format(pycent.percentage(dailyDiff.change_xp/dailyDiff.change_time.days, dailyGoal, 2), dailyGoal))
 		if (trainer.goal_total!=None):
 			totalGoal = trainer.goal_total
 			totalDiff = await self.getDiff(trainer, 7)
