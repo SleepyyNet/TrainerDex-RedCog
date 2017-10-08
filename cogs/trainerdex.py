@@ -253,7 +253,7 @@ class TrainerDexRed:
 		"""
 		
 		await self.bot.send_typing(ctx.message.channel)
-		trainer = trainerdex.DiscordUser(ctx.message.author.id).owner.trainer
+		trainer = await self.get_trainer(discord=ctx.message.author.id)
 		if which.title()=='Daily':
 			self.client.update_trainer(trainer, daily_goal=goal)
 			await self.bot.say("Daily goal set to {:,}".format(goal))
