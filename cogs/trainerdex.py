@@ -429,7 +429,7 @@ class TrainerDex:
 					await self.bot.edit_message(message, new_content='Success 👍', embed=embed)
 				except LookupError as e:
 					await self.bot.edit_message(message, '`Error: '+str(e)+'`')
-
+	
 	@commands.group(pass_context=True)
 	@checks.is_owner()
 	async def tdset(self, ctx):
@@ -437,7 +437,7 @@ class TrainerDex:
 		
 		if ctx.invoked_subcommand is None:
 			await self.bot.send_cmd_help(ctx)
-
+	
 	@tdset.command(pass_context=True)
 	@checks.is_owner()
 	async def api(self, ctx, token: str):
@@ -450,6 +450,40 @@ class TrainerDex:
 			settings['token'] = token
 			dataIO.save_json(settings_file, settings)
 			await self.bot.edit_message(message, '```API token set - please restart cog```')
+	
+	@tdset.command(pass_context=True)
+	@checks.is_owner()
+	async def register_server(self, ctx, cheaters, minors):
+		"""Register Server to database, required before leaderboards can work
+		
+		arguments:
+		cheaters - 0=allowed, 1=ban, 2=segregate
+		minors - 0=allowed, 1=ban, 2=segregate
+		"""
+		
+		message = await self.bot.say('Processing...')
+		await self.bot.send_typing(ctx.message.channel)
+		if cheaters == 0:
+			c1=False
+			c2=False
+		elif cheaters == 1:
+			c1=True
+			c2=False
+		elif cheaters == 2:
+			c1=False
+			c2=True
+		if minors == 0:
+			m1=False
+			m2=False
+		elif minors == 1:
+			m1=True
+			m2=False
+		elif minors == 2:
+			m1=False
+			m2=True
+		svr = ctx.message.server
+		server = self.client.import_discord_server(svr.name, str(svr.region), svr.id, owner=svr.owner.id, bans_cheaters=c1, seg_cheaters=c2, bans_minors=m1, seg_minors=m2)
+		await self.bot.edit_message(message, 'Server #{s.id} {s.name} succesfully added.'.format(server))
 	
 def check_folders():
 	if not os.path.exists("data/trainerdex"):
