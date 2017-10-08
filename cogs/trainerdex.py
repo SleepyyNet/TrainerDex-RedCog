@@ -38,7 +38,7 @@ class TrainerDexRed:
 		"""Returns a Trainer object for a given discord, trainer username or account id"""
 		
 		if username:
-			return self.client.get_user_from_username(username)
+			return self.client.get_trainer_from_username(username)
 		elif discord:
 			return trainerdex.DiscordUser(discord).owner().trainer()
 		elif account:
@@ -88,7 +88,7 @@ class TrainerDexRed:
 	
 	async def updateCard(self, trainer):
 		dailyDiff = await self.getDiff(trainer, 1)
-		level=trainer.level()
+		level=trainer.level
 		embed=discord.Embed(title=trainer.username, timestamp=dailyDiff.new_date, colour=int(trainer.team.colour.replace("#", ""), 16))
 		embed.add_field(name='Level', value=level.level)
 		embed.add_field(name='XP', value='{:,}'.format(dailyDiff.new_xp-level.xp_required))
@@ -119,11 +119,11 @@ class TrainerDexRed:
 	async def profileCard(self, name: str, force=False):
 		trainer = await self.get_trainer(username=name)
 		account = trainer.account
-		level=trainer.level()
+		level=trainer.level
 		if trainer.statistics is False and force is False:
 			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
 		else:
-			embed=discord.Embed(title=trainer.username, timestamp=trainer.update.xp_time, colour=int(trainer.team.colour.replace("#", ""), 16))
+			embed=discord.Embed(title=trainer.username, timestamp=trainer.update.time_updated, colour=int(trainer.team.colour.replace("#", ""), 16))
 			if account and (account.first_name or account.last_name):
 				embed.add_field(name='Name', value=account.first_name+' '+account.last_name)
 			embed.add_field(name='Team', value=trainer.team.name)
