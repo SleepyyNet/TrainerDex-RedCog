@@ -152,7 +152,7 @@ class TrainerDexRed:
 	
 	async def _addProfile(self, mention, username: str, xp: int, team, has_cheated=False, currently_cheats=False, name: str=None, prefered=True):
 		#Check existance
-		if self.get_trainer(username=username):
+		if self.get_trainer(username=username, prefered=prefered)==True:
 			await self.bot.say("A record already exists in the database for this trainer. Aborted.")
 			return
 		#Create or get auth.User and discord user
