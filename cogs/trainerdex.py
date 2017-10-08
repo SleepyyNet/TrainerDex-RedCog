@@ -28,7 +28,7 @@ Difference = namedtuple('Difference', [
 
 levelup = ["You reached your goal, well done. Now if only applied that much effort at buying {member} pizza, I might be happy!", "Well done on reaching {goal:,}", "much xp, very goal", "Great, you got to {goal:,} XP, now what?"]
 
-class TrainerDexRed:
+class TrainerDex:
 	
 	def __init__(self, bot):
 		self.bot = bot
@@ -195,7 +195,7 @@ class TrainerDexRed:
 	async def trainer(self, ctx, trainer: str): 
 		"""Look up a Pokemon Go Trainer
 		
-		Usage: trainer <username>
+		Example: trainer JayTurnr
 		"""
 		
 		message = await self.bot.say('Searching...')
@@ -217,7 +217,7 @@ class TrainerDexRed:
 	async def xp(self, ctx, xp: int): 
 		"""Update your xp
 		
-		Usage: update xp <number>
+		Example: update xp 6000000
 		"""
 		
 		message = await self.bot.say('Processing...')
@@ -238,14 +238,13 @@ class TrainerDexRed:
 		
 	@update.command(name="name", pass_context=True)
 	async def name(self, ctx, first_name: str, last_name: str=None): 
-		"""Update your name on your profile - entirely optional
+		"""Update your name on your profile
 		
 		Set your name in form of <first_name> <last_name>
 		If you want to blank your last name set it to two dots '..'
 		
-		Usage: update xp Bob ..
-		or
-		Usage: update xp Jay Turner
+		Example: update xp Bob ..
+		Example: update xp Jay Turner
 		"""
 		
 		message = await self.bot.say('Processing...')
@@ -268,7 +267,7 @@ class TrainerDexRed:
 	async def goal(self, ctx, which: str, goal: int):
 		"""Update your goals
 		
-		Usage: update goal <daily/total> <number>
+		Example: update goal daily 2000
 		"""
 		
 		message = await self.bot.say('Processing...')
@@ -288,6 +287,14 @@ class TrainerDexRed:
 	
 	@commands.command(pass_context=True)
 	async def leaderboard(self, ctx, entries=9):
+		"""View the leaderboard for your server
+		
+		Optional argument: entries - default, 9
+		
+		Example: leaderboard 25
+		Example: leaderboard
+		"""
+		
 		message = await self.bot.say("Thinking...")
 		await self.bot.send_typing(ctx.message.channel)
 		trainers = []
@@ -307,18 +314,19 @@ class TrainerDexRed:
 	@commands.command(pass_context=True)
 	@checks.mod_or_permissions(assign_roles=True)
 	async def spoofer(self, ctx):
-		"""Set a user as a spoofer. WIP."""
+		"""Set a user as a spoofer
 		
-		pass
+		WIP
+		"""
+		await self.bot.say("This command is currently a work in progress."
 
 	@commands.command(name="addprofile", no_pm=True, pass_context=True, alias="newprofile")
 	@checks.mod_or_permissions(assign_roles=True)
 	async def addprofile(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
 		"""Add a user to the Trainer Dex database
 		
-		Optional arguments: spoofer - sets the user as a spoofer (db only)
-		
-		Usage: addprofile <the tagged mention of a discord user> <pokemon username> <team> <level> <xp through level> <optional tag words suppoted: spoofer>
+		Optional arguments:
+		spoofer - sets the user as a spoofer
 		
 		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
 		"""
@@ -346,11 +354,10 @@ class TrainerDexRed:
 	async def addsecondary(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''):
 		"""Add a user to the Trainer Dex database as a secondary profile
 		
-		Optional arguments: spoofer - sets the user as a spoofer (db only)
+		Optional arguments:
+		spoofer - sets the user as a spoofer
 		
-		Usage: addprofile <the tagged mention of a discord user> <pokemon username> <team> <level> <xp through level> <optional tag words suppoted: spoofer>
-		
-		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
+		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567 spoofer
 		"""
 		
 		message = await self.bot.say('Processing...')
@@ -376,14 +383,13 @@ class TrainerDexRed:
 	async def approve(self, ctx, mention, name: str, team: str, level: int, xp: int, opt: str=''): 
 		"""Add a user to the Trainer Dex database and set the correct role on Discord
 		
-		Based on the ekpogo.uk standard network - options coming soon.
+		Roles and renaming based on the ekpogo.uk discord - options coming soon.
 		
-		Optional arguments: spoofer - sets the user as a spoofer (db only)
-							minor/child - sets the 'Minor' role instead of the 'Trainer' role (discord only)
+		Optional arguments:
+		spoofer - sets the user as a spoofer (db only)
+		minor/child - sets the 'Minor' role instead of the 'Trainer' role (discord only)
 		
-		Usage: approve <the tagged mention of a discord user> <pokemon username> <team> <level> <xp through level> <max one tag, optional tag words suppoted: spoofer, minor/child>
-		
-		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
+		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567 minor
 		"""
 		
 		message = await self.bot.say('Processing step 1 of 2...')
@@ -462,4 +468,4 @@ def check_file():
 def setup(bot):
 	check_folders()
 	check_file()
-	bot.add_cog(TrainerDexRed(bot))
+	bot.add_cog(TrainerDex(bot))
