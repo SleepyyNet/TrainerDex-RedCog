@@ -4,7 +4,9 @@
     "INSTALL_MSG" : "Please request an API Token from JayTurnr#6276",
     "NAME" : "TrainerDex",
     "REQUIREMENTS" : [
-        "trainedex",
+        "requests",
+        "maya",
+        "trainerdex",
         "datetime",
         "asyncio",
         "time",

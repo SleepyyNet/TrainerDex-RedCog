@@ -6,6 +6,7 @@ import datetime
 import pytz
 import discord
 import random
+import requests
 from collections import namedtuple
 from discord.ext import commands
 from .utils import checks
@@ -148,11 +149,17 @@ class TrainerDexRed:
 				embed.set_thumbnail(url='https://cdn.discordapp.com/attachments/341635533497434112/344984256633634818/C_SesKvyabCcQCNjEc1FJFe1EGpEuascVpHe_0e_DulewqS5nYtePystL4un5wgVFhIw300.png')
 				embed.add_field(name='Comments', value='{} is a known spoofer'.format(trainer.username))
 			embed.set_footer(text="Total XP: {:,}".format(trainer.update.xp))
-			await self.bot.say(embed=embed)
+			return embed
 	
 	async def _addProfile(self, mention, username: str, xp: int, team, has_cheated=False, currently_cheats=False, name: str=None, prefered=True):
 		#Check existance
-		if self.get_trainer(username=username, prefered=prefered)==True:
+		try:
+			print('Attempting to add {} to database, checking if they already exist'.format(username))
+			await self.get_trainer(username=username, prefered=prefered)
+		except LookupError:
+			pass
+		else:
+			print('Found {}, aborting...'.format(username))
 			await self.bot.say("A record already exists in the database for this trainer. Aborted.")
 			return
 		#Create or get auth.User and discord user
@@ -161,17 +168,25 @@ class TrainerDexRed:
 			avatarUrl = mention.default_avatar_url
 		else:
 			avatarUrl = mention.avatar_url
-		if trainerdex.DiscordUser(mention.id):
+		try:
+			print('Checking if existing Discord User {} exists in our database...'.format(mention.id))
 			discordUser=trainerdex.DiscordUser(mention.id)
-			user = discordUser.owner
-		elif discordUser==None:
+		except requests.exceptions.HTTPError as e:
+			print(e)
 			user = self.client.create_user(username='_'+username, first_name=name)
-			discordUser = self.client.import_discord_user(name=mention.name, discriminator=mention.discriminator, id=mention.id, avatar_url=avatarUrl, creation=mention.created_at, user=user.id)
-		#create or update trainer
-		trainer = self.client.create_trainer(username=username, team=team.id, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered, account=user.id)
-		#create update object
-		update = self.client.create_update(trainer.id, xp)
-		return trainer
+			discordUser = self.client.import_discord_user(name=mention.name, discriminator=mention.discriminator, id_=mention.id, avatar_url=avatarUrl, creation=mention.created_at, user=user.id)
+		else:
+			print('Found... Using that.')
+			user = discordUser.owner
+		finally:
+			#create or update trainer
+			print('Creating trainer...')
+			trainer = self.client.create_trainer(username=username, team=team.id, has_cheated=has_cheated, currently_cheats=currently_cheats, prefered=prefered, account=user.id)
+			print('Trainer created. Creating update object...')
+			#create update object
+			update = self.client.create_update(trainer.id, xp)
+			print('Update object created')
+			return trainer
 
 
 #Public Commands
@@ -203,11 +218,12 @@ class TrainerDexRed:
 		Usage: update xp <number>
 		"""
 		
+		message = await self.bot.say('Processing...')
 		await self.bot.send_typing(ctx.message.channel)
 		trainer = await self.get_trainer(discord=ctx.message.author.id)
 		if trainer is not None:
 			if int(trainer.update.xp) >= int(xp):
-				await self.bot.say("Error: You last set your XP to {xp:,}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.update.xp))
+				await self.bot.edit_message(message, "Error: You last set your XP to {xp:,}, please try a higher number. `ValidationError: {usr}, {xp}`".format(usr= trainer.username, xp=trainer.update.xp))
 				return
 			if trainer.goal_total:
 				if trainer.goal_total<=xp and trainer.goal_total != 0:
@@ -216,7 +232,7 @@ class TrainerDexRed:
 			update = self.client.create_update(trainer.id, xp)
 			await asyncio.sleep(1)
 			embed = await self.updateCard(trainer)
-			await self.bot.say(embed=embed)
+			await self.bot.edit_message(message, new_content='Success 👍', embed=embed)
 		
 	@update.command(name="name", pass_context=True)
 	async def name(self, ctx, first_name: str, last_name: str=None): 
@@ -230,6 +246,7 @@ class TrainerDexRed:
 		Usage: update xp Jay Turner
 		"""
 		
+		message = await self.bot.say('Processing...')
 		await self.bot.send_typing(ctx.message.channel)
 		trainer = await self.get_trainer(discord=ctx.message.author.id)
 		account = trainer.account
@@ -238,11 +255,12 @@ class TrainerDexRed:
 		if account:
 			self.client.update_user(account, first_name=first_name, last_name=last_name)
 			try:
-				await self.profileCard(trainer.username)
+				embed = await self.profileCard(trainer.username)
+				await self.bot.edit_message(message, new_content='Success 👍', embed=embed)
 			except LookupError as e:
-				await self.bot.say('`Error: '+str(e)+'`')
+				await self.bot.edit_message(message, new_content='`Error: '+str(e)+'`')
 		else:
-			await self.bot.say("Not found!")
+			await self.bot.edit_message(message, new_content="Not found!")
 			return
 
 	@update.command(name="goal", pass_context=True)
