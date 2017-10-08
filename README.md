@@ -1,2 +1,0 @@
-# red-eastereggs
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/02733652bc22443da158b12ae72e7f9a)](https://www.codacy.com/app/JayTurnr/red-eastereggs?utm_source=github.com&utm_medium=referral&utm_content=PokemonGoEastKent/red-eastereggs&utm_campaign=badger)
