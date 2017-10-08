@@ -318,7 +318,7 @@ class TrainerDex:
 		
 		WIP
 		"""
-		await self.bot.say("This command is currently a work in progress."
+		await self.bot.say("This command is currently a work in progress.")
 
 	@commands.command(name="addprofile", no_pm=True, pass_context=True, alias="newprofile")
 	@checks.mod_or_permissions(assign_roles=True)
