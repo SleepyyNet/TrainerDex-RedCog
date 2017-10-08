@@ -11,7 +11,8 @@
         "datetime",
         "asyncio",
         "time",
-        "random"
+        "random",
+        "pycent"
     ],
     "SHORT" : "A trainer profile system for Pokemon Go servers",
     "TAGS" : [
