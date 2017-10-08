@@ -297,15 +297,11 @@ class TrainerDex:
 		
 		message = await self.bot.say("Thinking...")
 		await self.bot.send_typing(ctx.message.channel)
+		trainer_list = trainerdex.DiscordServer(ctx.message.server.id).trainers(ctx.message.server)
 		trainers = []
-		for user in ctx.message.server.members:
-			try:
-				trainer = await self.get_trainer(user.id)
-			except:
-				pass
-			else:
-				if trainer.statistics==True:
-					trainers.append(trainer)
+		for user in trainer_list:
+			if trainer.statistics==True:
+				trainers.append(trainer)
 		trainers.sort(key=lambda x:x.update.xp, reverse=True)
 		embed=discord.Embed(title="Leaderboard")
 		for i in range(min(entries, 25, len(trainers))):
