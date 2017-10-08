@@ -38,7 +38,10 @@ class TrainerDexRed:
 		"""Returns a Trainer object for a given discord, trainer username or account id"""
 		
 		if username:
-			return self.client.get_trainer_from_username(username)
+			try:
+				return self.client.get_trainer_from_username(username)
+			except LookupError:
+				raise
 		elif discord:
 			return trainerdex.DiscordUser(discord).owner().trainer()
 		elif account:
@@ -117,7 +120,10 @@ class TrainerDexRed:
 		return embed
 		
 	async def profileCard(self, name: str, force=False):
-		trainer = await self.get_trainer(username=name)
+		try:
+			trainer = await self.get_trainer(username=name)
+		except LookupError:
+			raise
 		account = trainer.account
 		level=trainer.level
 		if trainer.statistics is False and force is False:
@@ -170,7 +176,10 @@ class TrainerDexRed:
 		"""
 		
 		await self.bot.send_typing(ctx.message.channel)
-		await self.profileCard(trainer)
+		try:
+			await self.profileCard(trainer)
+		except LookupError as e:
+			await self.bot.say('`Error: '+str(e)+'`')
 
 	@commands.group(pass_context=True)
 	async def update(self, ctx):
@@ -219,7 +228,10 @@ class TrainerDexRed:
 			last_name=' '
 		if account:
 			self.client.update_user(account, first_name=first_name, last_name=last_name)
-			await self.profileCard(account.trainer.username)
+			try:
+				await self.profileCard(account.trainer.username)
+			except LookupError as e:
+				await self.bot.say('`Error: '+str(e)+'`')
 		else:
 			await self.bot.say("Not found!")
 			return
@@ -293,7 +305,10 @@ class TrainerDexRed:
 			await self._addProfile(mbr, name, xp, team, has_cheated=True, currently_cheats=True)
 		else:
 			await self._addProfile(mbr, name, xp, team)
-		await self.profileCard(name)
+		try:
+			await self.profileCard(name)
+		except LookupError as e:
+			await self.bot.say('`Error: '+str(e)+'`')
 		
 	@commands.command(pass_context=True, no_pm=True)
 	@checks.mod_or_permissions(assign_roles=True)
@@ -318,7 +333,10 @@ class TrainerDexRed:
 			await self._addProfile(mbr, name, xp, team, has_cheated=True, currently_cheats=True, prefered=False)
 		else:
 			await self._addProfile(mbr, name, xp, team, prefered=False)
-		await self.profileCard(name)
+		try:
+			await self.profileCard(name)
+		except LookupError as e:
+			await self.bot.say('`Error: '+str(e)+'`')
 		
 	@commands.command(pass_context=True, no_pm=True)
 	@checks.mod_or_permissions(assign_roles=True)
@@ -365,7 +383,10 @@ class TrainerDexRed:
 					await self._addProfile(mbr, name, xp, team, has_cheated=True, currently_cheats=True)
 				else:
 					await self._addProfile(mbr, name, xp, team)
-				await self.profileCard(name)
+				try:
+					await self.profileCard(name)
+				except LookupError as e:
+					await self.bot.say('`Error: '+str(e)+'`')
 
 	@commands.group(pass_context=True)
 	@checks.is_owner()
