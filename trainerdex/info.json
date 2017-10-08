@@ -6,12 +6,12 @@
     "REQUIREMENTS" : [
         "requests",
         "maya",
-        "trainerdex",
+        "trainerdex==1.2.0",
         "datetime",
         "asyncio",
         "time",
         "random",
-        "pycent"
+        "pycent==1.0"
     ],
     "SHORT" : "A trainer profile system for Pokemon Go servers",
     "TAGS" : [

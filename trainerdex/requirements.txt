@@ -1,0 +1,4 @@
+trainerdex==1.2.0
+requests
+maya
+pycent==1.0
