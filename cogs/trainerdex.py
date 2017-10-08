@@ -32,7 +32,7 @@ class TrainerDexRed:
 	def __init__(self, bot):
 		self.bot = bot
 		self.client = trainerdex.Client(token)
-		self.teams = self.client.get_teams
+		self.teams = self.client.get_teams()
 		
 	async def get_trainer(self, username=None, discord=None, account=None, prefered=True):
 		"""Returns a Trainer object for a given discord, trainer username or account id
