@@ -2,17 +2,16 @@
     "AUTHOR" : "JayTurnr",
     "DESCRIPTION" : "A trainer profile system for Pokemon Go servers",
     "INSTALL_MSG" : "Please request an API Token from JayTurnr#6276",
-    "NAME" : "TrainerGo",
+    "NAME" : "TrainerDex",
     "REQUIREMENTS" : [
-        "iso8601",
-        "TrainerDex",
-        "json",
         "requests",
+        "maya",
+        "trainerdex==1.2.0",
         "datetime",
         "asyncio",
         "time",
         "random",
-        "pycent"
+        "pycent==1.0"
     ],
     "SHORT" : "A trainer profile system for Pokemon Go servers",
     "TAGS" : [
