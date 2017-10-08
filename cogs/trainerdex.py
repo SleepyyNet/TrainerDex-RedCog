@@ -231,13 +231,14 @@ class TrainerDexRed:
 		"""
 		
 		await self.bot.send_typing(ctx.message.channel)
-		account = trainerdex.DiscordUser(ctx.message.author.id).user
+		trainer = await self.get_trainer(discord=ctx.message.author.id)
+		account = trainer.account
 		if last_name=='..':
 			last_name=' '
 		if account:
 			self.client.update_user(account, first_name=first_name, last_name=last_name)
 			try:
-				await self.profileCard(account.trainer.username)
+				await self.profileCard(trainer.username)
 			except LookupError as e:
 				await self.bot.say('`Error: '+str(e)+'`')
 		else:
