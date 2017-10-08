@@ -60,15 +60,15 @@ class TrainerDexRed:
 				return item
 	
 	async def getDiff(self, trainer, days: int):
-		updates = trainer.all_updates()
+		updates = trainer.updates()
 		latest = updates[0]
-		first = updates[-1]
+		oldest = updates[-1]
 		reference = []
 		for i in updates:
 			if i.time_updated <= (datetime.datetime.now(pytz.utc)-datetime.timedelta(days=days)+datetime.timedelta(hours=3)):
 				reference.append(i)
 		if reference==[]:
-			if latest==first:
+			if latest==oldest:
 				diff = Difference(
 					old_date = None,
 					old_xp = None,
@@ -78,8 +78,8 @@ class TrainerDexRed:
 					change_xp = None
 				)
 				return diff
-			elif first.time_updated > (datetime.datetime.now(pytz.utc)-datetime.timedelta(days=days)+datetime.timedelta(hours=3)):
-				reference=first
+			elif oldest.time_updated > (datetime.datetime.now(pytz.utc)-datetime.timedelta(days=days)+datetime.timedelta(hours=3)):
+				reference=oldest
 		else:
 			reference = reference[0]
 		print(reference)
