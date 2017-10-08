@@ -297,15 +297,15 @@ class TrainerDex:
 		
 		message = await self.bot.say("Thinking...")
 		await self.bot.send_typing(ctx.message.channel)
-		trainer_list = trainerdex.DiscordServer(ctx.message.server.id).trainers(ctx.message.server)
+		trainer_list = trainerdex.DiscordServer(ctx.message.server.id).get_trainers(ctx.message.server)
 		trainers = []
-		for user in trainer_list:
+		for trainer in trainer_list:
 			if trainer.statistics==True:
 				trainers.append(trainer)
 		trainers.sort(key=lambda x:x.update.xp, reverse=True)
 		embed=discord.Embed(title="Leaderboard")
 		for i in range(min(entries, 25, len(trainers))):
-			embed.add_field(name='{}. {}'.format(i+1, trainers[i].username), value="{:,}".format(trainers[i].xp))
+			embed.add_field(name='{}. {}'.format(i+1, trainers[i].username), value="{:,}".format(trainers[i].update.xp))
 		await self.bot.edit_message(message, new_content=str(datetime.date.today()), embed=embed)
 
 #Mod-commands
@@ -457,30 +457,31 @@ class TrainerDex:
 		"""Register Server to database, required before leaderboards can work
 		
 		arguments:
-		cheaters - 0=allowed, 1=ban, 2=segregate
-		minors - 0=allowed, 1=ban, 2=segregate
+		cheaters - allowed, ban, segregate
+		minors - allowed, ban, segregate
 		"""
 		
 		message = await self.bot.say('Processing...')
 		await self.bot.send_typing(ctx.message.channel)
-		if cheaters == 0:
+		if cheaters == 'allowed':
 			c1=False
 			c2=False
-		elif cheaters == 1:
+		elif cheaters == 'ban':
 			c1=True
 			c2=False
-		elif cheaters == 2:
+		elif cheaters in ('segregate','seg'):
 			c1=False
 			c2=True
-		if minors == 0:
+		if minors == 'allowed':
 			m1=False
 			m2=False
-		elif minors == 1:
+		elif minors == 'ban':
 			m1=True
 			m2=False
-		elif minors == 2:
+		elif minors in ('segregate','seg'):
 			m1=False
 			m2=True
+		print('{}{}{}{}'.format(c1,c2,m1,m2))
 		svr = ctx.message.server
 		server = self.client.import_discord_server(svr.name, str(svr.region), svr.id, owner=svr.owner.id, bans_cheaters=c1, seg_cheaters=c2, bans_minors=m1, seg_minors=m2)
 		await self.bot.edit_message(message, 'Server #{s.id} {s.name} succesfully added.'.format(server))
