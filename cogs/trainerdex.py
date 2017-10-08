@@ -300,9 +300,12 @@ class TrainerDex:
 		trainers = []
 		for user in ctx.message.server.members:
 			try:
-				trainers.append(trainerdex.DiscordUser(user.id).owner.trainer)
+				trainer = await self.get_trainer(user.id)
 			except:
 				pass
+			else:
+				if trainer.statistics==True:
+					trainers.append(trainer)
 		trainers.sort(key=lambda x:x.update.xp, reverse=True)
 		embed=discord.Embed(title="Leaderboard")
 		for i in range(min(entries, 25, len(trainers))):
