@@ -35,19 +35,24 @@ class TrainerDexRed:
 		self.teams = self.client.get_teams
 		
 	async def get_trainer(self, username=None, discord=None, account=None, prefered=True):
-		"""Returns a Trainer object for a given discord, trainer username or account id"""
+		"""Returns a Trainer object for a given discord, trainer username or account id
+		
+		Search is done in the order of username > discord > account, if you specify more than one, it will ONLY search the first one.
+		"""
 		
 		if username:
 			try:
 				return self.client.get_trainer_from_username(username)
 			except LookupError:
 				raise
-		elif discord:
-			return trainerdex.DiscordUser(discord).owner().trainer()
-		elif account:
-			return trainerdex.User(account).trainer()
-		else:
-			return None
+		elif discord and prefered==True:
+			return trainerdex.DiscordUser(discord).owner.trainer(all_=False)
+		elif discord and prefered==False:
+			return trainerdex.DiscordUser(discord).owner.trainer(all_=True)
+		elif account and prefered==True:
+			return trainerdex.User(account).trainer(all_=False)
+		elif account and prefered==False:
+			return trainerdex.User(account).trainer(all_=True)
 		
 	async def getTeamByName(self, team: str):
 		for item in self.teams:
@@ -125,6 +130,7 @@ class TrainerDexRed:
 		except LookupError:
 			raise
 		account = trainer.account
+		discordUser = account.discord()
 		level=trainer.level
 		if trainer.statistics is False and force is False:
 			await self.bot.say("{} has chosen to opt out of statistics and the trainer profile system.".format(t_pogo))
@@ -132,6 +138,8 @@ class TrainerDexRed:
 			embed=discord.Embed(title=trainer.username, timestamp=trainer.update.time_updated, colour=int(trainer.team.colour.replace("#", ""), 16))
 			if account and (account.first_name or account.last_name):
 				embed.add_field(name='Name', value=account.first_name+' '+account.last_name)
+			if discordUser:
+				embed.add_field(name='Discord', value='<@{}>'.format(discordUser.id))
 			embed.add_field(name='Team', value=trainer.team.name)
 			embed.add_field(name='Level', value=level.level)
 			embed.add_field(name='XP', value='{:,}'.format(trainer.update.xp-level.total_xp))
