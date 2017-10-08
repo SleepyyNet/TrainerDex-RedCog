@@ -151,7 +151,7 @@ class TrainerDexRed:
 			embed.set_footer(text="Total XP: {:,}".format(trainer.update.xp))
 			return embed
 	
-	async def _addProfile(self, mention, username: str, xp: int, team, has_cheated=False, currently_cheats=False, name: str=None, prefered=True):
+	async def _addProfile(self, message, mention, username: str, xp: int, team, has_cheated=False, currently_cheats=False, name: str=None, prefered=True):
 		#Check existance
 		try:
 			print('Attempting to add {} to database, checking if they already exist'.format(username))
@@ -160,7 +160,7 @@ class TrainerDexRed:
 			pass
 		else:
 			print('Found {}, aborting...'.format(username))
-			await self.bot.say("A record already exists in the database for this trainer. Aborted.")
+			await self.bot.edit_message(message, "A record already exists in the database for this trainer. Aborted.")
 			return
 		#Create or get auth.User and discord user
 		discordUser=None
@@ -198,9 +198,11 @@ class TrainerDexRed:
 		Usage: trainer <username>
 		"""
 		
+		message = await self.bot.say('Searching...')
 		await self.bot.send_typing(ctx.message.channel)
 		try:
-			await self.profileCard(trainer)
+			embed = await self.profileCard(trainer)
+			await self.bot.edit_message(message, new_content='I found this one...', embed=embed)
 		except LookupError as e:
 			await self.bot.say('`Error: '+str(e)+'`')
 
@@ -261,32 +263,32 @@ class TrainerDexRed:
 				await self.bot.edit_message(message, new_content='`Error: '+str(e)+'`')
 		else:
 			await self.bot.edit_message(message, new_content="Not found!")
-			return
 
 	@update.command(name="goal", pass_context=True)
 	async def goal(self, ctx, which: str, goal: int):
 		"""Update your goals
 		
-		Usage: update goal <daily/update> <number>
+		Usage: update goal <daily/total> <number>
 		"""
 		
+		message = await self.bot.say('Processing...')
 		await self.bot.send_typing(ctx.message.channel)
 		trainer = await self.get_trainer(discord=ctx.message.author.id)
 		if which.title()=='Daily':
 			self.client.update_trainer(trainer, daily_goal=goal)
-			await self.bot.say("Daily goal set to {:,}".format(goal))
+			await self.bot.edit_message(message, "{}, your daily goal has been set to {:,}".format(ctx.message.author.mention, goal))
 		elif which.title()=='Total':
 			if goal>trainer.update.xp:
 				self.client.update_trainer(trainer, total_goal=goal)
-				await self.bot.say("Total goal set to {:,}".format(goal))
+				await self.bot.edit_message(message, "{}, your total goal has been set to {:,}".format(ctx.message.author.mention, goal))
 			else:
-				await self.bot.say("Try something higher than your current XP of {:,}.".format(trainer.update.xp))
+				await self.bot.edit_message(message, "{}, try something higher than your current XP of {:,}.".format(ctx.message.author.mention, trainer.update.xp))
 		else:
-			await self.bot.say("`Please choose 'Daily' or 'Total' for after goal.")
+			await self.bot.edit_message(message, "{}, please choose 'Daily' or 'Total' for after goal.".format(ctx.message.author.mention))
 	
 	@commands.command(pass_context=True)
 	async def leaderboard(self, ctx, entries=9):
-		Message = await self.bot.say("Thinking...")
+		message = await self.bot.say("Thinking...")
 		await self.bot.send_typing(ctx.message.channel)
 		trainers = []
 		for user in ctx.message.server.members:
@@ -298,7 +300,7 @@ class TrainerDexRed:
 		embed=discord.Embed(title="Leaderboard")
 		for i in range(min(entries, 25, len(trainers))):
 			embed.add_field(name='{}. {}'.format(i+1, trainers[i].username), value="{:,}".format(trainers[i].xp))
-		await self.bot.edit_message(Message, new_content=str(datetime.date.today()), embed=embed)
+		await self.bot.edit_message(message, new_content=str(datetime.date.today()), embed=embed)
 
 #Mod-commands
 
@@ -321,21 +323,23 @@ class TrainerDexRed:
 		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
 		"""
 		
+		message = await self.bot.say('Processing...')
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
 		xp = trainerdex.Level.from_level(level).total_xp + xp
 		team = await self.getTeamByName(team)
 		if team is None:
-			await self.bot.say("That isn't a valid team. Please ensure that you have used the command correctly.")
+			await self.bot.edit_message(message, "That isn't a valid team. Please ensure that you have used the command correctly.")
 			return
 		if opt.title() == 'Spoofer':
-			await self._addProfile(mbr, name, xp, team, has_cheated=True, currently_cheats=True)
+			await self._addProfile(message, mbr, name, xp, team, has_cheated=True, currently_cheats=True)
 		else:
-			await self._addProfile(mbr, name, xp, team)
+			await self._addProfile(message, mbr, name, xp, team)
 		try:
-			await self.profileCard(name)
+			embed = await self.profileCard(name)
+			await self.bot.edit_message(message, new_content='Success 👍', embed=embed)
 		except LookupError as e:
-			await self.bot.say('`Error: '+str(e)+'`')
+			await self.bot.edit_message(message, '`Error: '+str(e)+'`')
 		
 	@commands.command(pass_context=True, no_pm=True)
 	@checks.mod_or_permissions(assign_roles=True)
@@ -349,21 +353,23 @@ class TrainerDexRed:
 		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
 		"""
 		
+		message = await self.bot.say('Processing...')
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
 		xp = trainerdex.Level.from_level(level).total_xp + xp
 		team = await self.getTeamByName(team)
 		if team is None:
-			await self.bot.say("That isn't a valid team. Please ensure that you have used the command correctly.")
+			await self.bot.edit_message(message, "That isn't a valid team. Please ensure that you have used the command correctly.")
 			return
 		if opt.title() == 'Spoofer':
-			await self._addProfile(mbr, name, xp, team, has_cheated=True, currently_cheats=True, prefered=False)
+			await self._addProfile(message, mbr, name, xp, team, has_cheated=True, currently_cheats=True, prefered=False)
 		else:
-			await self._addProfile(mbr, name, xp, team, prefered=False)
+			await self._addProfile(message, mbr, name, xp, team, prefered=False)
 		try:
-			await self.profileCard(name)
+			embed = await self.profileCard(name)
+			await self.bot.edit_message(message, new_content='Success 👍', embed=embed)
 		except LookupError as e:
-			await self.bot.say('`Error: '+str(e)+'`')
+			await self.bot.edit_message(message, '`Error: '+str(e)+'`')
 		
 	@commands.command(pass_context=True, no_pm=True)
 	@checks.mod_or_permissions(assign_roles=True)
@@ -380,17 +386,18 @@ class TrainerDexRed:
 		Example: approve @JayTurnr#1234 JayTurnr Valor 34 1234567
 		"""
 		
+		message = await self.bot.say('Processing step 1 of 2...')
 		await self.bot.send_typing(ctx.message.channel)
 		xp = trainerdex.Level.from_level(level).total_xp + xp
 		team = await self.getTeamByName(team)
 		if team is None:
-			await self.bot.say("That isn't a valid team. Please ensure that you have used the command correctly.")
+			await self.bot.edit_message(message, "That isn't a valid team. Please ensure that you have used the command correctly.")
 			return
 		mbr = ctx.message.mentions[0]
 		try:
 			await self.bot.change_nickname(mbr, name)
 		except discord.errors.Forbidden:
-			await self.bot.say("Error: I don't have permission to change nicknames. Aborted!")
+			await self.bot.edit_message(message, "Error: I don't have permission to change nicknames. Aborted!")
 		else:
 			if (opt.title() in ['Minor', 'Child']) and discord.utils.get(ctx.message.server.roles, name='Minor'):
 				approved_mentionable = discord.utils.get(ctx.message.server.roles, name='Minor')
@@ -403,17 +410,20 @@ class TrainerDexRed:
 					await asyncio.sleep(2.5) #Waits for 2.5 seconds to pass to get around Discord rate limiting
 					await self.bot.add_roles(mbr, team_mentionable)
 			except discord.errors.Forbidden:
-				await self.bot.say("Error: I don't have permission to set roles. Aborted!")
+				await self.bot.edit_message(message, "Error: I don't have permission to set roles. Aborted!")
 			else:
-				await self.bot.say("{} has been approved, super. They're probably super cool, be nice to them.".format(name))
+				await self.bot.edit_message(message, "{} has been approved! 👍".format(name))
+				message = await self.bot.say('Processing step 2 of 2...')
+				await self.bot.send_typing(ctx.message.channel)
 				if opt.title() == 'Spoofer':
-					await self._addProfile(mbr, name, xp, team, has_cheated=True, currently_cheats=True)
+					await self._addProfile(message, mbr, name, xp, team, has_cheated=True, currently_cheats=True)
 				else:
-					await self._addProfile(mbr, name, xp, team)
+					await self._addProfile(message, mbr, name, xp, team)
 				try:
-					await self.profileCard(name)
+					embed = await self.profileCard(name)
+					await self.bot.edit_message(message, new_content='Success 👍', embed=embed)
 				except LookupError as e:
-					await self.bot.say('`Error: '+str(e)+'`')
+					await self.bot.edit_message(message, '`Error: '+str(e)+'`')
 
 	@commands.group(pass_context=True)
 	@checks.is_owner()
@@ -428,11 +438,13 @@ class TrainerDexRed:
 	async def api(self, ctx, token: str):
 		"""Sets the TrainerDex API token - owner only"""
 		
+		message = await self.bot.say('Processing...')
+		await self.bot.send_typing(ctx.message.channel)
 		settings = dataIO.load_json(settings_file)
 		if token:
 			settings['token'] = token
 			dataIO.save_json(settings_file, settings)
-			await self.bot.say('```API token set```')
+			await self.bot.edit_message(message, '```API token set - please restart cog```')
 	
 def check_folders():
 	if not os.path.exists("data/trainerdex"):
