@@ -10,7 +10,7 @@ from collections import namedtuple
 from discord.ext import commands
 from .utils import checks
 from .utils.dataIO import dataIO
-import TrainerDex
+import trainerdex
 
 settings_file = 'data/trainerdex/settings.json'
 json_data = dataIO.load_json(settings_file)
@@ -27,11 +27,11 @@ Difference = namedtuple('Difference', [
 
 levelup = ["You reached your goal, well done. Now if only applied that much effort at buying {member} pizza, I might be happy!", "Well done on reaching {goal:,}", "much xp, very goal", "Great, you got to {goal:,} XP, now what?"]
 
-class trainerdex:
+class TrainerDexRed:
 	
 	def __init__(self, bot):
 		self.bot = bot
-		self.client = TrainerDex.Client(token)
+		self.client = trainerdex.Client(token)
 		self.teams = self.client.get_teams
 		
 	async def get_trainer(self, username=None, discord=None, account=None, prefered=True):
@@ -40,9 +40,9 @@ class trainerdex:
 		if username:
 			return self.client.get_user_from_username(username)
 		elif discord:
-			return TrainerDex.DiscordUser(discord).owner().trainer()
+			return trainerdex.DiscordUser(discord).owner().trainer()
 		elif account:
-			return TrainerDex.User(account).trainer()
+			return trainerdex.User(account).trainer()
 		else:
 			return None
 		
@@ -147,8 +147,8 @@ class trainerdex:
 			avatarUrl = mention.default_avatar_url
 		else:
 			avatarUrl = mention.avatar_url
-		if TrainerDex.DiscordUser(mention.id):
-			discordUser=TrainerDex.DiscordUser(mention.id)
+		if trainerdex.DiscordUser(mention.id):
+			discordUser=trainerdex.DiscordUser(mention.id)
 			user = discordUser.owner
 		elif discordUser==None:
 			user = self.client.create_user(username='_'+username, first_name=name)
@@ -214,7 +214,7 @@ class trainerdex:
 		"""
 		
 		await self.bot.send_typing(ctx.message.channel)
-		account = TrainerDex.DiscordUser(ctx.message.author.id).user
+		account = trainerdex.DiscordUser(ctx.message.author.id).user
 		if last_name=='..':
 			last_name=' '
 		if account:
@@ -232,7 +232,7 @@ class trainerdex:
 		"""
 		
 		await self.bot.send_typing(ctx.message.channel)
-		trainer = TrainerDex.DiscordUser(ctx.message.author.id).owner.trainer
+		trainer = trainerdex.DiscordUser(ctx.message.author.id).owner.trainer
 		if which.title()=='Daily':
 			self.client.update_trainer(trainer, daily_goal=goal)
 			await self.bot.say("Daily goal set to {:,}".format(goal))
@@ -252,7 +252,7 @@ class trainerdex:
 		trainers = []
 		for user in ctx.message.server.members:
 			try:
-				trainers.append(TrainerDex.DiscordUser(user.id).owner.trainer)
+				trainers.append(trainerdex.DiscordUser(user.id).owner.trainer)
 			except:
 				pass
 		trainers.sort(key=lambda x:x.update.xp, reverse=True)
@@ -284,7 +284,7 @@ class trainerdex:
 		
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
-		xp = TrainerDex.Level.from_level(level).total_xp + xp
+		xp = trainerdex.Level.from_level(level).total_xp + xp
 		team = await self.getTeamByName(team)
 		if team is None:
 			await self.bot.say("That isn't a valid team. Please ensure that you have used the command correctly.")
@@ -309,7 +309,7 @@ class trainerdex:
 		
 		await self.bot.send_typing(ctx.message.channel)
 		mbr = ctx.message.mentions[0]
-		xp = TrainerDex.Level.from_level(level).total_xp + xp
+		xp = trainerdex.Level.from_level(level).total_xp + xp
 		team = await self.getTeamByName(team)
 		if team is None:
 			await self.bot.say("That isn't a valid team. Please ensure that you have used the command correctly.")
@@ -336,7 +336,7 @@ class trainerdex:
 		"""
 		
 		await self.bot.send_typing(ctx.message.channel)
-		xp = TrainerDex.Level.from_level(level).total_xp + xp
+		xp = trainerdex.Level.from_level(level).total_xp + xp
 		team = await self.getTeamByName(team)
 		if team is None:
 			await self.bot.say("That isn't a valid team. Please ensure that you have used the command correctly.")
@@ -402,5 +402,4 @@ def check_file():
 def setup(bot):
 	check_folders()
 	check_file()
-	importedTrainerDex = True
-	bot.add_cog(trainerdex(bot))
+	bot.add_cog(TrainerDexRed(bot))
