@@ -62,7 +62,7 @@ class TrainerDex:
 	
 	async def getDiff(self, trainer, days: int):
 		updates = trainer.updates()
-		latest = updates[0]
+		latest = trainer.update
 		oldest = updates[-1]
 		reference = []
 		for i in updates:
