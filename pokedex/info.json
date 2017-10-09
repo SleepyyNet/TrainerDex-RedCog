@@ -1,0 +1,11 @@
+﻿{
+    "AUTHOR" : "JayTurnr",
+    "DESCRIPTION" : "Pokedex for PokemonGo",
+    "NAME" : "Pokédex",
+    "SHORT" : "Pokedex",
+    "TAGS" : [
+        "pokedex",
+        "pokemon",
+        "pokemongo"
+    ]
+}
